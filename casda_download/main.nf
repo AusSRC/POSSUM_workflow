@@ -6,42 +6,45 @@ nextflow.enable.dsl = 2
 // Processes
 // ----------------------------------------------------------------------------------------
 
-// Generate configuration
-process generate_config {
+// Download image cubes from CASDA
+process casda_download {
     container = params.WALLABY_COMPONENTS_IMAGE
     containerOptions = '--bind /mnt/shared:/mnt/shared'
 
     input:
-        val cubes
+        val sbid
 
     output:
-        stdout emit: linmos_config
+        stdout emit: cube
 
     script:
         """
-        python3 -u /app/generate_linmos_config.py \
-            -i "$cubes" \
-            -f ${params.WORKDIR}/${params.LINMOS_OUTPUT_IMAGE_CUBE} \
-            -c ${params.WORKDIR}/${params.LINMOS_CONFIG_FILENAME}
+        python3 -u /app/casda_download.py \
+            -i $sbid \
+            -o ${params.WORKDIR} \
+            -u '${params.CASDA_USERNAME}' \
+            -p '${params.CASDA_PASSWORD}' \
+            -ct '${params.CASDA_CUBE_TYPE}' \
+            -cf '${params.CASDA_CUBE_FILENAME}' \
+            -wt '${params.CASDA_WEIGHTS_TYPE}' \
+            -wf '${params.CASDA_WEIGHTS_FILENAME}'
         """
 }
 
-// Linear mosaicking
-process linmos {
-    container = "aussrc/yandasoft_devel_focal:latest"
+// Checksum comparison
+process checksum {
+    container = params.WALLABY_COMPONENTS_IMAGE
     containerOptions = '--bind /mnt/shared:/mnt/shared'
-    clusterOptions = params.LINMOS_CLUSTER_OPTIONS
 
     input:
-        val linmos_config
-    
+        val cube
+
     output:
-        val "${params.WORKDIR}/${params.LINMOS_OUTPUT_IMAGE_CUBE}.fits", emit: mosaicked_cube
+        stdout emit: cube
 
     script:
         """
-        #!/bin/bash
-        mpirun linmos-mpi -c $linmos_config
+        python3 -u /app/verify_checksum.py $cube
         """
 }
 
@@ -49,15 +52,15 @@ process linmos {
 // Workflow
 // ----------------------------------------------------------------------------------------
 
-workflow mosaicking {
-    take: cubes
+workflow casda_download {
+    take: sbids
 
     main:
-        generate_config(cubes.collect())
-        linmos(generate_config.out.linmos_config)
+        casda_download(sbids)
+        checksum(casda_download.out.cube)
     
     emit:
-        cube = linmos.out.mosaicked_cube
+        cube = checksum.out.cube
 }
 
 // ----------------------------------------------------------------------------------------
