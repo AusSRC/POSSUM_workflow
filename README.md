@@ -4,10 +4,6 @@
 
 ## Overview
 
-The overall POSSUM post-processing pipeline can be seen in the diagram
-
-![possum_pipeline](media/POSSUM_pipeline.pdf)
-
 The AusSRC contribution performs the following steps:
 
 - Ionospheric correction
