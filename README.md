@@ -12,4 +12,4 @@ The AusSRC contribution performs the following steps:
 - Stokes I component catalogue cross-matching
 - [CADC](https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/en/) data transfer
 
-We will write a [Nextflow](https://www.nextflow.io/) for these steps.
+We will write a pipeline for [Nextflow](https://www.nextflow.io/) for these steps.
