@@ -13,3 +13,11 @@ The AusSRC contribution performs the following steps:
 - [CADC](https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/en/) data transfer
 
 We will write a [Nextflow](https://www.nextflow.io/) for these steps.
+
+## Execution
+
+The workflow can be triggered from the head node of a slurm cluster with configuration in `params.yaml` using the following command:
+
+```
+nextflow run main.nf -params-file params.yaml
+```
