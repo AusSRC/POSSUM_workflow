@@ -19,7 +19,7 @@ We will write a [Nextflow](https://www.nextflow.io/) for these steps.
 The workflow can be triggered from the head node of a slurm cluster with configuration in `params.yaml` using the following command:
 
 ```
-nextflow run https://github.com/AusSRC/POSSUM_workflow -params-file params.yaml -latest
+nextflow run https://github.com/AusSRC/POSSUM_workflow -r main -params-file params.yaml -latest
 ```
 
 ### Parameters
