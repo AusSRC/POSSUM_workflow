@@ -28,7 +28,6 @@ process generate_config {
 
 // Linear mosaicking
 process linmos {
-    container = "csirocass/yandasoft:1.2.2-openmpi4"
     containerOptions = '--bind /mnt/shared:/mnt/shared'
     clusterOptions = params.LINMOS_CLUSTER_OPTIONS
 
@@ -41,7 +40,11 @@ process linmos {
     script:
         """
         #!/bin/bash
-        linmos-mpi -c $linmos_config
+
+        singularity pull /mnt/shared/possum/apps/singularity/yandasoft_linmos.sif ${params.LINMOS_IMAGE}
+        mpirun --mca btl_tcp_if_exclude docker0,lo \
+            singularity exec --bind /mnt/shared/:/mnt/shared/ /mnt/shared/possum/apps/singularity/yandasoft_linmos.sif \
+            linmos-mpi -c $linmos_config
         """
 }
 
