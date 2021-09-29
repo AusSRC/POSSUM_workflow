@@ -15,10 +15,16 @@
                     "type": "string",
                     "description": "Working directory in the shared file system to save all POSSUM workflow files",
                     "default": "/mnt/shared/home/ashen/outputs/tmp"
+                },
+                "SINGULARITY_CACHEDIR": {
+                    "type": "string",
+                    "description": "Directory where singularity images are cached.",
+                    "default": "/mnt/shared/possum/apps/singularity"
                 }
             },
             "required": [
-                "WORKDIR"
+                "WORKDIR",
+                "SINGULARITY_CACHEDIR"
             ]
         },
         "casda": {
@@ -85,10 +91,32 @@
                 "LINMOS_CLUSTER_OPTIONS": {
                     "type": "string",
                     "description": "Cluster configuration for the execution of linmos.",
-                    "default": "--ntasks=324 --ntasks-per-node=18"
+                    "default": "--nodes=12 --ntasks-per-node=12"
                 }
             },
             "required": [
+            ]
+        },
+        "frion": {
+            "title": "FRion",
+            "type": "object",
+            "description": "Ionospheric correction component.",
+            "default": "",
+            "properties": {
+                "FRION_IMAGE": {
+                    "type": "string",
+                    "description": "Docker image with FRion installed.",
+                    "default": "aussrc/frion:latest"
+                },
+                "FRION_PREDICT_OUTFILE": {
+                    "type": "string",
+                    "description": "Output file from FRion predict.",
+                    "default": "frion.prediction.txt"
+                }
+            },
+            "required": [
+                "FRION_IMAGE",
+                "FRION_PREDICT_OUTFILE"
             ]
         }
     },
