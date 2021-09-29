@@ -3,3 +3,4 @@
 nextflow
 work
 *__pycache__*
+clean.sh
