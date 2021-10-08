@@ -41,9 +41,9 @@ process linmos {
         """
         #!/bin/bash
 
-        singularity pull /mnt/shared/possum/apps/singularity/yandasoft_linmos.sif ${params.LINMOS_IMAGE}
+        singularity pull ${params.SINGULARITY_CACHEDIR}/csirocass_yandasoft.img ${params.LINMOS_IMAGE}
         mpirun --mca btl_tcp_if_exclude docker0,lo \
-            singularity exec --bind /mnt/shared/:/mnt/shared/ /mnt/shared/possum/apps/singularity/yandasoft_linmos.sif \
+            singularity exec ${params.SINGULARITY_CACHEDIR}/csirocass_yandasoft.img \
             linmos-mpi -c $linmos_config
         """
 }

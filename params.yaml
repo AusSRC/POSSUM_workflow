@@ -1,0 +1,16 @@
+{
+  "WORKDIR": "/mnt/shared/home/ashen/POSSUM/runs/",
+  "SINGULARITY_CACHEDIR": "/mnt/shared/possum/apps/singularity",
+  "CUBES": "/mnt/shared/home/ashen/POSSUM/data/image.restored.q.SB10168.contcube.fits,/mnt/shared/home/ashen/POSSUM/data/image.restored.u.SB10168.contcube.fits",
+  "FRION_PREDICT_OUTFILE": "/mnt/shared/home/ashen/POSSUM/runs/frion_predict.txt",
+  "FRION_Q_INPUT_CUBE": "/mnt/shared/home/ashen/POSSUM/data/image.restored.q.SB10168.contcube.fits",
+  "FRION_U_INPUT_CUBE": "/mnt/shared/home/ashen/POSSUM/data/image.restored.u.SB10168.contcube.fits",
+  "FRION_Q_OUTPUT_CUBE": "/mnt/shared/home/ashen/POSSUM/runs/frion_q_corrected.fits",
+  "FRION_U_OUTPUT_CUBE": "/mnt/shared/home/ashen/POSSUM/runs/frion_u_corrected.fits",
+  "LINMOS_OUTPUT_IMAGE_CUBE": "mosaicked",
+  "LINMOS_CONFIG_FILENAME": "linmos.config",
+  "LINMOS_CLUSTER_OPTIONS": "--nodes=18 --ntasks-per-node=18 --cpus-per-task=1",
+  "WALLABY_COMPONENTS_IMAGE": "aussrc/wallaby_scripts:latest",
+  "LINMOS_IMAGE": "docker://csirocass/yandasoft:1.3.0-openmpi4",
+  "IONOSPHERIC_CORRECTION_IMAGE": "docker://aussrc/frion:latest",
+}

@@ -2,11 +2,12 @@
 
 nextflow.enable.dsl = 2
 include { mosaicking } from './mosaicking/main'
+include { ionospheric_correction } from './ionospheric_correction/main'
 
 workflow {
-    // sbids = Channel.of(params.SBIDS.split(','))
     cubes = Channel.of(params.CUBES.split(','))
 
     main: 
-        mosaicking(cubes)
+        ionospheric_correction(cubes.collect())
+        mosaicking(ionospheric_correction.out.cubes)
 }
