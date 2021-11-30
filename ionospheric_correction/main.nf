@@ -12,7 +12,7 @@ process frion_predict {
     containerOptions = '--bind /mnt/shared:/mnt/shared'
 
     input:
-        val cubes
+        val q_cube
 
     output:
         val "${params.FRION_PREDICT_OUTFILE}", emit: file
@@ -22,7 +22,7 @@ process frion_predict {
     // Faraday rotation.
     script:
         """
-        frion_predict -F ${params.FRION_Q_INPUT_CUBE} -s ${params.FRION_PREDICT_OUTFILE}
+        frion_predict -F $q_cube -s ${params.FRION_PREDICT_OUTFILE}
         """
 }
 
@@ -32,7 +32,13 @@ process frion_correct {
     containerOptions = '--bind /mnt/shared:/mnt/shared'
 
     input:
+        val q_cube
+        val u_cube
         val predict_file
+
+    output:
+        val "${params.FRION_Q_OUTPUT_CUBE}", emit: q_cube_output
+        val "${params.FRION_U_OUTPUT_CUBE}", emit: u_cube_output
 
     // The frion_correct tool applies a correction to the Stokes Q and U cubes,
     // using the prediction file from the predict step. The output is two
@@ -42,7 +48,7 @@ process frion_correct {
     // (The -L flag enables a new large-file mode that reduces the memory footprint).
     script:
         """
-        frion_correct -L ${params.FRION_Q_INPUT_CUBE} ${params.FRION_U_INPUT_CUBE} $predict_file \
+        frion_correct -L $q_cube $u_cube $predict_file \
             ${params.FRION_Q_OUTPUT_CUBE} ${params.FRION_U_OUTPUT_CUBE}
         """
 }
@@ -58,11 +64,17 @@ process frion_correct {
 //  affected by this step.
 
 workflow ionospheric_correction {
-    take: cubes
+    take:
+        q_cubes
+        u_cubes
     
     main:
-        frion_predict(cubes)
-        frion_correct(frion_predict.out.file)
+        frion_predict(q_cubes)
+        frion_correct(q_cubes, u_cubes, frion_predict.out.file)
+
+    emit:
+        q_cubes_output = frion_correct.out.q_cube_output
+        u_cubes_output = frion_correct.out.u_cube_output
 }
 
 // ----------------------------------------------------------------------------------------

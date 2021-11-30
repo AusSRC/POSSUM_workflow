@@ -8,7 +8,7 @@ The AusSRC contribution performs the following steps:
 
 - Ionospheric correction
 - Super-mosaicking
-- Tiiling
+- Tiling
 - Stokes I component catalogue cross-matching
 - [CADC](https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/en/) data transfer
 
