@@ -4,3 +4,6 @@ nextflow
 work
 *__pycache__*
 clean.sh
+*params*.yaml
+*params*.yml
+media
