@@ -6,6 +6,8 @@ nextflow.enable.dsl = 2
 // Processes
 // ----------------------------------------------------------------------------------------
 
+// Check output and header directories
+
 // Tiling
 process generate_healpix_headers {
     container = params.POSSUM_TILING_COMPONENT
@@ -40,6 +42,27 @@ process get_healpix_header_files {
         header_files = file("${params.WORKDIR}/${params.TILING_OUTPUT_DIRECTORY}/*.hdr")
 }
 
+// Montage for reprojection
+process montage {
+    errorStrategy 'ignore'
+    container = params.MONTAGE_IMAGE
+    containerOptions = '--bind /mnt/shared:/mnt/shared'
+
+    input:
+        val image_cube
+        val header
+
+    output:
+        stdout emit: stdout
+
+    script:
+        """
+        #!/bin/bash
+
+        mProjectCube ${image_cube} ${params.WORKDIR}/${params.REPROJECTION_OUTPUT_DIRECTORY}/test.reprojected.fits ${header}
+        """
+}
+
 // ----------------------------------------------------------------------------------------
 // Workflow
 // ----------------------------------------------------------------------------------------
@@ -50,8 +73,7 @@ workflow tiling {
     main:
         generate_healpix_headers(image_cube)
         get_healpix_header_files(generate_healpix_headers.out.stdout)
-        get_healpix_header_files.out.header_files.view()
+        montage(image_cube, get_healpix_header_files.out.header_files.flatten())
 }
 
 // ----------------------------------------------------------------------------------------
-
