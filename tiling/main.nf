@@ -6,7 +6,26 @@ nextflow.enable.dsl = 2
 // Processes
 // ----------------------------------------------------------------------------------------
 
-// Check output and header directories
+// Check output and header directories exist and are empty
+process pre_check {
+    output:
+        stdout emit: stdout
+
+    script:
+        """
+        #!/bin/bash
+
+        # Check image cube exists
+        [ ! -f ${params.IMAGE_CUBE} ] && { echo "Image cube specified by params.SOFIA_PARAMETER_FILE not found"; exit 1; }
+
+        # Check output and header directories exist
+        [ ! -d ${params.WORKDIR}/${params.TILING_OUTPUT_DIRECTORY} ] && mkdir ${params.WORKDIR}/${params.TILING_OUTPUT_DIRECTORY}
+        [ ! -d ${params.WORKDIR}/${params.REPROJECTION_OUTPUT_DIRECTORY} ] && mkdir ${params.WORKDIR}/${params.REPROJECTION_OUTPUT_DIRECTORY}
+
+        # Clear headers if any exist
+        rm ${params.WORKDIR}/${params.TILING_OUTPUT_DIRECTORY}/*
+        """
+}
 
 // Tiling
 process generate_healpix_headers {
@@ -15,6 +34,7 @@ process generate_healpix_headers {
 
     input:
         val image_cube
+        val pre_check
 
     output:
         stdout emit: stdout
@@ -22,7 +42,7 @@ process generate_healpix_headers {
     script:
         """
         python3 -u /app/healpix_headers.py \
-            -i "$image_cube" \
+            -i ${image_cube} \
             -o ${params.WORKDIR}/${params.TILING_OUTPUT_DIRECTORY} \
             -n ${params.NSIDE}
         """
@@ -71,7 +91,8 @@ workflow tiling {
     take: image_cube
 
     main:
-        generate_healpix_headers(image_cube)
+        pre_check()
+        generate_healpix_headers(image_cube, pre_check.out.stdout)
         get_healpix_header_files(generate_healpix_headers.out.stdout)
         montage(image_cube, get_healpix_header_files.out.header_files.flatten())
 }
