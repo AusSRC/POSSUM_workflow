@@ -15,14 +15,14 @@ process frion_predict {
         val q_cube
 
     output:
-        val "${params.FRION_PREDICT_OUTFILE}", emit: file
+        val "${params.WORKDIR}/${params.RUN_NAME}/${params.FRION_PREDICT_OUTFILE}", emit: file
 
     // The frion_predict tool takes an input file (a single FITS cube),
     // and returns a text file containing the prediction for the ionospheric
     // Faraday rotation.
     script:
         """
-        frion_predict -F $q_cube -s ${params.FRION_PREDICT_OUTFILE}
+        frion_predict -F $q_cube -s ${params.WORKDIR}/${params.RUN_NAME}/${params.FRION_PREDICT_OUTFILE}
         """
 }
 
@@ -65,16 +65,16 @@ process frion_correct {
 
 workflow ionospheric_correction {
     take:
-        q_cubes
-        u_cubes
+        q_cube
+        u_cube
     
     main:
-        frion_predict(q_cubes)
-        frion_correct(q_cubes, u_cubes, frion_predict.out.file)
+        frion_predict(q_cube)
+        frion_correct(q_cube, u_cube, frion_predict.out.file)
 
     emit:
-        q_cubes_output = frion_correct.out.q_cube_output
-        u_cubes_output = frion_correct.out.u_cube_output
+        q_cube_corr = frion_correct.out.q_cube_output
+        u_cube_corr = frion_correct.out.u_cube_output
 }
 
 // ----------------------------------------------------------------------------------------

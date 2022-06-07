@@ -7,7 +7,7 @@ nextflow.enable.dsl = 2
 // ----------------------------------------------------------------------------------------
 
 // Check output and header directories exist and are empty
-process pre_check {
+process tiling_pre_check {
     output:
         stdout emit: stdout
 
@@ -34,7 +34,7 @@ process generate_healpix_headers {
 
     input:
         val image_cube
-        val pre_check
+        val tiling_pre_check
 
     output:
         stdout emit: stdout
@@ -91,10 +91,12 @@ workflow tiling {
     take: image_cube
 
     main:
-        pre_check()
-        generate_healpix_headers(image_cube, pre_check.out.stdout)
+        tiling_pre_check()
+        generate_healpix_headers(image_cube, tiling_pre_check.out.stdout)
         get_healpix_header_files(generate_healpix_headers.out.stdout)
         montage(image_cube, get_healpix_header_files.out.header_files.flatten())
+
+    // TODO(austin): emit output cube
 }
 
 // ----------------------------------------------------------------------------------------

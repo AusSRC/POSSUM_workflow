@@ -77,12 +77,15 @@ process beamcon_output_cube {
 
 workflow convolution {
     take: cube
+    take: check
 
     main:
         convolution_pre_check(cube)
         beamcon(cube, convolution_pre_check.out.stdout)
         beamcon_output_cube(cube, beamcon.out.stdout)
-        beamcon_output_cube.out.stdout.view()
+    
+    emit:
+        cube_conv = beamcon_output_cube.out.stdout
 }
 
 // ----------------------------------------------------------------------------------------
