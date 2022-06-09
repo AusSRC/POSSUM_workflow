@@ -17,7 +17,7 @@ workflow {
         conv_q(q_cube, setup.out.check)
         conv_u(u_cube, setup.out.check)
         ionospheric_correction(conv_q.out.cube_conv, conv_u.out.cube_conv)
-        tile_i(conv_i.out.cube_conv)
-        tile_q(ionospheric_correction.out.q_cube_corr)
-        tile_u(ionospheric_correction.out.u_cube_corr)
+        tile_i(conv_i.out.cube_conv, "i")
+        tile_q(ionospheric_correction.out.q_cube_corr, "q")
+        tile_u(ionospheric_correction.out.u_cube_corr, "u")
 }

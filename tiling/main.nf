@@ -10,6 +10,7 @@ nextflow.enable.dsl = 2
 process tiling_pre_check {
     input:
         val image_cube
+        val polarisation
 
     output:
         stdout emit: stdout
@@ -25,6 +26,10 @@ process tiling_pre_check {
         [ ! -d ${params.WORKDIR}/${params.RUN_NAME}/${params.TILING_HEADER_DIRECTORY} ] && mkdir ${params.WORKDIR}/${params.RUN_NAME}/${params.TILING_HEADER_DIRECTORY}
         [ ! -d ${params.WORKDIR}/${params.RUN_NAME}/${params.REPROJECTION_OUTPUT_DIRECTORY} ] && mkdir ${params.WORKDIR}/${params.RUN_NAME}/${params.REPROJECTION_OUTPUT_DIRECTORY}
 
+        # Check polarisation specific directories exist
+        [ ! -d ${params.WORKDIR}/${params.RUN_NAME}/${params.TILING_HEADER_DIRECTORY}/${polarisation} ] && mkdir ${params.WORKDIR}/${params.RUN_NAME}/${params.TILING_HEADER_DIRECTORY}/${polarisation}
+        [ ! -d ${params.WORKDIR}/${params.RUN_NAME}/${params.REPROJECTION_OUTPUT_DIRECTORY}/${polarisation} ] && mkdir ${params.WORKDIR}/${params.RUN_NAME}/${params.REPROJECTION_OUTPUT_DIRECTORY}/${polarisation}
+
         exit 0
         """
 }
@@ -37,6 +42,7 @@ process generate_healpix_headers {
     input:
         val image_cube
         val tiling_pre_check
+        val polarisation
 
     output:
         stdout emit: stdout
@@ -45,7 +51,7 @@ process generate_healpix_headers {
         """
         python3 -u /app/healpix_headers.py \
             -i ${image_cube} \
-            -o ${params.WORKDIR}/${params.RUN_NAME}/${params.TILING_HEADER_DIRECTORY} \
+            -o ${params.WORKDIR}/${params.RUN_NAME}/${params.TILING_HEADER_DIRECTORY}/${polarisation} \
             -n ${params.NSIDE}
         """
 }
@@ -56,12 +62,13 @@ process get_healpix_header_files {
 
     input:
         val generate_healpix_headers
+        val polarisation
 
     output:
         val header_files, emit: header_files
 
     exec:
-        header_files = file("${params.WORKDIR}/${params.TILING_HEADER_DIRECTORY}/*.hdr")
+        header_files = file("${params.WORKDIR}/${params.RUN_NAME}/${params.TILING_HEADER_DIRECTORY}/${polarisation}/*.hdr")
 }
 
 process tile_output_filename {
@@ -94,6 +101,7 @@ process montage {
         val image_cube
         val header
         val tile_filename
+        val polarisation
 
     output:
         stdout emit: stdout
@@ -102,7 +110,7 @@ process montage {
         """
         #!/bin/bash
 
-        mProjectCube ${image_cube} ${params.WORKDIR}/${params.RUN_NAME}/${params.REPROJECTION_OUTPUT_DIRECTORY}/${tile_filename} ${header}
+        mProjectCube ${image_cube} ${params.WORKDIR}/${params.RUN_NAME}/${params.REPROJECTION_OUTPUT_DIRECTORY}/${polarisation}/${tile_filename} ${header}
         """
 }
 
@@ -112,13 +120,14 @@ process montage {
 
 workflow tiling {
     take: image_cube
+    take: polarisation
 
     main:
-        tiling_pre_check(image_cube)
-        generate_healpix_headers(image_cube, tiling_pre_check.out.stdout)
-        get_healpix_header_files(generate_healpix_headers.out.stdout)
+        tiling_pre_check(image_cube, polarisation)
+        generate_healpix_headers(image_cube, tiling_pre_check.out.stdout, polarisation)
+        get_healpix_header_files(generate_healpix_headers.out.stdout, polarisation)
         tile_output_filename(image_cube, get_healpix_header_files.out.header_files.flatten())
-        montage(image_cube, tile_output_filename.out.header, tile_output_filename.out.tile_filename)
+        montage(image_cube, tile_output_filename.out.header, tile_output_filename.out.tile_filename, polarisation)
 }
 
 // ----------------------------------------------------------------------------------------
