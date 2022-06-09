@@ -9,7 +9,7 @@ nextflow.enable.dsl = 2
 // Check output and header directories exist and are empty
 process tiling_pre_check {
     input:
-        val cube
+        val image_cube
 
     output:
         stdout emit: stdout
@@ -19,20 +19,19 @@ process tiling_pre_check {
         #!/bin/bash
 
         # Check image cube exists
-        [ ! -f ${cube} ] && { echo "Image cube file not found"; exit 1; }
+        [ ! -f ${image_cube} ] && { echo "Image cube file not found"; exit 1; }
 
         # Check output and header directories exist
         [ ! -d ${params.WORKDIR}/${params.RUN_NAME}/${params.TILING_HEADER_DIRECTORY} ] && mkdir ${params.WORKDIR}/${params.RUN_NAME}/${params.TILING_HEADER_DIRECTORY}
         [ ! -d ${params.WORKDIR}/${params.RUN_NAME}/${params.REPROJECTION_OUTPUT_DIRECTORY} ] && mkdir ${params.WORKDIR}/${params.RUN_NAME}/${params.REPROJECTION_OUTPUT_DIRECTORY}
 
-        # Clear headers if any exist
-        rm ${params.WORKDIR}/${params.RUN_NAME}/${params.TILING_HEADER_DIRECTORY}/*
+        exit 0
         """
 }
 
 // Tiling
 process generate_healpix_headers {
-    container = params.POSSUM_TILING_COMPONENT
+    container = params.HEALPIX_HEADER_IMAGE
     containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
 
     input:
@@ -65,6 +64,26 @@ process get_healpix_header_files {
         header_files = file("${params.WORKDIR}/${params.TILING_HEADER_DIRECTORY}/*.hdr")
 }
 
+process tile_output_filename {
+    input:
+        val image_cube
+        val header
+    
+    output:
+        val header, emit: header
+        stdout emit: tile_filename
+
+    script:
+        """
+        #!python3
+
+        image_prefix = "$image_cube".rsplit('.', 1)[0]
+        tile_id = "$header".rsplit('.', 1)[0]
+        tile_filename = f"{image_prefix}_{tile_id}.fits"
+        print(tile_filename, end='')
+        """
+}
+
 // Montage for reprojection
 process montage {
     errorStrategy 'ignore'
@@ -74,6 +93,7 @@ process montage {
     input:
         val image_cube
         val header
+        val tile_filename
 
     output:
         stdout emit: stdout
@@ -82,7 +102,7 @@ process montage {
         """
         #!/bin/bash
 
-        mProjectCube ${image_cube} ${params.WORKDIR}/${pa${params.RUN_NAME}/rams.REPROJECTION_OUTPUT_DIRECTORY}/test.reprojected.fits ${header}
+        mProjectCube ${image_cube} ${params.WORKDIR}/${params.RUN_NAME}/${params.REPROJECTION_OUTPUT_DIRECTORY}/${tile_filename} ${header}
         """
 }
 
@@ -94,12 +114,11 @@ workflow tiling {
     take: image_cube
 
     main:
-        tiling_pre_check()
+        tiling_pre_check(image_cube)
         generate_healpix_headers(image_cube, tiling_pre_check.out.stdout)
         get_healpix_header_files(generate_healpix_headers.out.stdout)
-        montage(image_cube, get_healpix_header_files.out.header_files.flatten())
-
-    // TODO(austin): emit output cube
+        tile_output_filename(image_cube, get_healpix_header_files.out.header_files.flatten())
+        montage(image_cube, tile_output_filename.out.header, tile_output_filename.out.tile_filename)
 }
 
 // ----------------------------------------------------------------------------------------
