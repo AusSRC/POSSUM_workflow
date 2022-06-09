@@ -4,7 +4,7 @@ nextflow.enable.dsl = 2
 include { setup } from './setup/main'
 include { convolution as conv_i; convolution as conv_q; convolution as conv_u } from './convolution/main'
 include { ionospheric_correction } from './ionospheric_correction/main'
-include { tiling } from './tiling/main'
+include { tiling as tile_i; tiling as tile_q; tiling as tile_u } from './tiling/main'
 
 workflow {
     i_cube = "${params.I_CUBE}"
