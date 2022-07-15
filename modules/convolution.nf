@@ -41,10 +41,10 @@ process beamcon {
         #!/bin/bash
 
         singularity pull ${params.SINGULARITY_CACHEDIR}/racstools.sif ${params.RACS_TOOLS_IMAGE}
-	    mpiexec -np 144 singularity exec \
+	    time mpiexec -np 144 singularity exec \
             --bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT} \
             ${params.SINGULARITY_CACHEDIR}/racstools.sif \
-            beamcon_3D --mode total --bmaj 13 --bmin 13 --bpa 0 -v ${image_cube}
+            beamcon_3D --mode total --bmaj 13 --bmin 13 --bpa 0 ${image_cube} -v
         """
 }
 

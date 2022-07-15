@@ -106,7 +106,7 @@ process frion_correct {
         #!/bin/bash
 
         frion_correct \
-            -L $q_cube $u_cube $predict_file \
+            -o -L $q_cube $u_cube $predict_file \
             ${params.WORKDIR}/${params.RUN_NAME}/${params.FRION_Q_CUBE_FILENAME} \
             ${params.WORKDIR}/${params.RUN_NAME}/${params.FRION_U_CUBE_FILENAME}
         """
