@@ -29,9 +29,6 @@ process convolution_pre_check {
 
 // Run Beamcon_3D for convolution
 process beamcon {
-    container = params.RACS_TOOLS_IMAGE
-    containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
-
     input:
         val image_cube
         val convolution_pre_check
@@ -42,8 +39,12 @@ process beamcon {
     script:
         """
         #!/bin/bash
-        
-        beamcon_3D --mode total --bmaj 13 --bmin 13 --bpa 0 -v ${image_cube}
+
+        singularity pull ${params.SINGULARITY_CACHEDIR}/racstools.sif ${params.RACS_TOOLS_IMAGE}
+	    mpiexec -np 144 singularity exec \
+            --bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT} \
+            ${params.SINGULARITY_CACHEDIR}/racstools.sif \
+            beamcon_3D --mode total --bmaj 13 --bmin 13 --bpa 0 -v ${image_cube}
         """
 }
 
