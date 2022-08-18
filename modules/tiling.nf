@@ -75,7 +75,7 @@ process tile_output_filename {
     input:
         val image_cube
         val header
-    
+
     output:
         val header, emit: header
         stdout emit: tile_filename
