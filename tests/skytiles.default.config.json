@@ -1,0 +1,5 @@
+{
+    "tile_template": "/mnt/shared/home/ashen/POSSUM/development/SkyTiles/tile-template.fits",
+    "naxis": 2048,
+    "tile_prefix": "PoSSUM"
+}

@@ -33,7 +33,7 @@ process linmos {
 
     input:
         val linmos_config
-    
+
     output:
         val "${params.WORKDIR}/${params.LINMOS_OUTPUT_IMAGE_CUBE}.fits", emit: mosaicked_cube
 
@@ -58,7 +58,7 @@ workflow mosaicking {
     main:
         generate_config(cubes.collect())
         linmos(generate_config.out.linmos_config)
-    
+
     emit:
         cube = linmos.out.mosaicked_cube
 }

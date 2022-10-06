@@ -98,7 +98,7 @@ process frion_correct {
     // The frion_correct tool applies a correction to the Stokes Q and U cubes,
     // using the prediction file from the predict step. The output is two
     // new FITS cubes with the correction applied.
-    // The call sequence is: 
+    // The call sequence is:
     // frion_correct -L $INPUT_Q_CUBE $INPUT_U_CUBE $PREDICT_FILE $OUTPUT_Q_CUBE $OUTPUT_U_CUBE
     // (The -L flag enables a new large-file mode that reduces the memory footprint).
     script:
@@ -126,7 +126,7 @@ workflow ionospheric_correction {
     take:
         q_cube
         u_cube
-    
+
     main:
         observation_start_time(q_cube)
         observation_end_time(q_cube)
