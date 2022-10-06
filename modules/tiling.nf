@@ -10,8 +10,7 @@ process tiling_pre_check {
     input:
         val image_cube
         val tiling_map
-        val output_dir
-        val config
+        val stokes
 
     output:
         stdout emit: stdout
@@ -27,10 +26,10 @@ process tiling_pre_check {
         [ ! -f $tiling_map ] && { echo "Tiling map file does not exist"; exit 1; }
 
         # Check output directory
-        [ ! -d $output_dir ] && mkdir -p $output_dir
+        [ ! -d ${params.TILING_OUTPUT_DIR}/$stokes ] && mkdir -p ${params.TILING_OUTPUT_DIR}/$stokes
 
         # Check config file
-        [ ! -f $config ] && { echo "Configuration file does not exist"; exit 1; }
+        [ ! -f ${params.TILING_CONFIG} ] && { echo "Configuration file does not exist"; exit 1; }
 
         exit 0
         """
@@ -43,8 +42,7 @@ process run_tiling {
     input:
         val image_cube
         val tiling_map
-        val output_dir
-        val config
+        val stokes
         val check
 
     output:
@@ -55,8 +53,8 @@ process run_tiling {
         python3 -u /app/pyCASATILE.py \
             -i $image_cube \
             -m $tiling_map \
-            -o $output_dir \
-            -j $config
+            -o ${params.TILING_OUTPUT_DIR}/$stokes \
+            -j ${params.TILING_CONFIG}
         """
 }
 
@@ -68,12 +66,11 @@ workflow tiling {
     take:
         image_cube
         tiling_map
-        output_dir
-        config
+        stokes
 
     main:
-        tiling_pre_check(image_cube, tiling_map, output_dir, config)
-        run_tiling(image_cube, tiling_map, output_dir, config, tiling_pre_check.out.stdout)
+        tiling_pre_check(image_cube, tiling_map, stokes)
+        run_tiling(image_cube, tiling_map, stokes, tiling_pre_check.out.stdout)
 }
 
 // ----------------------------------------------------------------------------------------
