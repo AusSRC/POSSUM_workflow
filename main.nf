@@ -21,14 +21,15 @@ workflow {
         conv_i(i_cube, setup.out.check)
         conv_q(q_cube, setup.out.check)
         conv_u(u_cube, setup.out.check)
-        conv_w(weights, setup.out.check)
+
+        // Flagging to be added
 
         ionospheric_correction(conv_q.out.cube_conv, conv_u.out.cube_conv)
 
-        tile_i(conv_i.out.cube_conv, tiling_map, "i")
-        tile_q(ionospheric_correction.out.q_cube_corr, tiling_map, "q")
-        tile_u(ionospheric_correction.out.u_cube_corr, tiling_map, "u")
-        tile_w(conv_w.out.cube_conv, tiling_map, "w")
+        tile_i(conv_i.out.cube_conv, tiling_map)
+        tile_q(ionospheric_correction.out.q_cube_corr, tiling_map)
+        tile_u(ionospheric_correction.out.u_cube_corr, tiling_map)
+        tile_w(weights, tiling_map)
 
         // Mosaicking
         // Check if this completes another tile
