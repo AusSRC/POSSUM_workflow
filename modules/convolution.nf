@@ -68,8 +68,11 @@ process beamcon {
         """
         #!/bin/bash
 
-	    time mpiexec singularity exec --bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT} \
-            ${params.SINGULARITY_CACHEDIR}/aussrc-racstools.sif \
+        export SINGULARITY_TMPDIR=/tmp
+        export SLURM_NTASKS=16
+
+	    srun -n 16 singularity exec --bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT} \
+            ${params.SINGULARITY_CACHEDIR}/racstools_latest.sif \
             beamcon_3D ${image_cube} --mode total -v --override
         """
 }
@@ -104,7 +107,6 @@ process beamcon_output_cube {
 
 workflow convolution {
     take: cube
-    take: check
 
     main:
         convolution_pre_check(cube)
