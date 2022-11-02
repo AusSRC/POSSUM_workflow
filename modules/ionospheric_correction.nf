@@ -64,7 +64,7 @@ process frion_predict {
         val end_time
 
     output:
-        val "${params.WORKDIR}/${params.RUN_NAME}/${params.FRION_PREDICT_OUTFILE}", emit: file
+        val "${params.WORKDIR}/${params.SBID}/${params.FRION_PREDICT_OUTFILE}", emit: file
 
     // The frion_predict tool takes an input file (a single FITS cube),
     // and returns a text file containing the prediction for the ionospheric
@@ -75,7 +75,7 @@ process frion_predict {
 
         frion_predict \
             -F $q_cube \
-            -s ${params.WORKDIR}/${params.RUN_NAME}/${params.FRION_PREDICT_OUTFILE} \
+            -s ${params.WORKDIR}/${params.SBID}/${params.FRION_PREDICT_OUTFILE} \
             -t "ASKAP" \
             -d $start_time $end_time
         """
@@ -92,8 +92,8 @@ process frion_correct {
         val predict_file
 
     output:
-        val "${params.WORKDIR}/${params.RUN_NAME}/${params.FRION_Q_CUBE_FILENAME}", emit: q_cube_output
-        val "${params.WORKDIR}/${params.RUN_NAME}/${params.FRION_U_CUBE_FILENAME}", emit: u_cube_output
+        val "${params.WORKDIR}/${params.SBID}/${params.FRION_Q_CUBE_FILENAME}", emit: q_cube_output
+        val "${params.WORKDIR}/${params.SBID}/${params.FRION_U_CUBE_FILENAME}", emit: u_cube_output
 
     // The frion_correct tool applies a correction to the Stokes Q and U cubes,
     // using the prediction file from the predict step. The output is two
@@ -107,8 +107,8 @@ process frion_correct {
 
         frion_correct \
             -o -L $q_cube $u_cube $predict_file \
-            ${params.WORKDIR}/${params.RUN_NAME}/${params.FRION_Q_CUBE_FILENAME} \
-            ${params.WORKDIR}/${params.RUN_NAME}/${params.FRION_U_CUBE_FILENAME}
+            ${params.WORKDIR}/${params.SBID}/${params.FRION_Q_CUBE_FILENAME} \
+            ${params.WORKDIR}/${params.SBID}/${params.FRION_U_CUBE_FILENAME}
         """
 }
 

@@ -14,7 +14,7 @@ process check {
         """
         #!/bin/bash
         # Ensure working directory exists
-        [ ! -d ${params.WORKDIR}/${params.RUN_NAME} ] && mkdir ${params.WORKDIR}/${params.RUN_NAME}
+        [ ! -d ${params.WORKDIR}/${params.SBID} ] && mkdir ${params.WORKDIR}/${params.SBID}
         exit 0
         """
 }
@@ -36,7 +36,7 @@ process casda_download {
 
         python3 /app/casda_download.py \
             -i $sbid \
-            -o ${params.WORKDIR}/${params.RUN_NAME} \
+            -o ${params.WORKDIR}/${params.SBID} \
             -p POSSUM \
             -c ${params.CASDA_CREDENTIALS}
         """
@@ -55,10 +55,10 @@ process get_files {
         val weights, emit: weights
 
     exec:
-        i_cube = file("${params.WORKDIR}/${params.RUN_NAME}/image.restored.i.*.contcube.fits")
-        q_cube = file("${params.WORKDIR}/${params.RUN_NAME}/image.restored.q.*.contcube.fits")
-        u_cube = file("${params.WORKDIR}/${params.RUN_NAME}/image.restored.u.*.contcube.fits")
-        weights = file("${params.WORKDIR}/${params.RUN_NAME}/weights.i.*.contcube.fits")
+        i_cube = file("${params.WORKDIR}/${params.SBID}/image.restored.i.*.contcube.fits")
+        q_cube = file("${params.WORKDIR}/${params.SBID}/image.restored.q.*.contcube.fits")
+        u_cube = file("${params.WORKDIR}/${params.SBID}/image.restored.u.*.contcube.fits")
+        weights = file("${params.WORKDIR}/${params.SBID}/weights.i.*.contcube.fits")
 }
 
 // ----------------------------------------------------------------------------------------
