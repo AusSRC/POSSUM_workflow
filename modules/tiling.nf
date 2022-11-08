@@ -10,6 +10,7 @@ process tiling_pre_check {
     input:
         val sbid
         val image_cube
+        val stokes
 
     output:
         stdout emit: stdout
@@ -23,7 +24,8 @@ process tiling_pre_check {
 
         # Check working directories
         [ ! -d ${params.WORKDIR}/$sbid ] && mkdir -p ${params.WORKDIR}/$sbid
-        [ ! -d ${params.WORKDIR}/$sbid/${params.TILING_OUTPUT_DIR} ] && mkdir -p ${params.WORKDIR}/$sbid/${params.TILING_OUTPUT_DIR}
+        [ ! -d ${params.WORKDIR}/${params.TILE_COMPONENT_OUTPUT_DIR} ] && mkdir -p ${params.WORKDIR}/${params.TILE_COMPONENT_OUTPUT_DIR}
+        [ ! -d ${params.WORKDIR}/${params.TILE_COMPONENT_OUTPUT_DIR}/$stokes ] && mkdir -p ${params.WORKDIR}/${params.TILE_COMPONENT_OUTPUT_DIR}/$stokes
         [ ! -d ${params.WORKDIR}/$sbid/${params.EVALUATION_FILES_DIR} ] && mkdir -p ${params.WORKDIR}/$sbid/${params.EVALUATION_FILES_DIR}
 
         # Check tiling config files
@@ -103,7 +105,7 @@ process generate_tile_map {
         """
         python3 /app/generate_tile_pixel_map.py \
             -f "${params.WORKDIR}/${params.SBID}/${params.EVALUATION_FILES_DIR}/$footprint_file" \
-            -o "${params.WORKDIR}/${params.SBID}/${params.TILING_OUTPUT_DIR}" \
+            -o "${params.WORKDIR}/${params.SBID}" \
             -j "${params.HPX_TILE_CONFIG}"
         """
 }
@@ -118,7 +120,7 @@ process get_tile_pixel_map_csv {
         val pixel_map_csv, emit: pixel_map_csv
 
     exec:
-        pixel_map_csv = file("${params.WORKDIR}/${params.SBID}/${params.TILING_OUTPUT_DIR}/POSSUM*.csv")
+        pixel_map_csv = file("${params.WORKDIR}/${params.SBID}/*.csv")
 }
 
 process run_hpx_tiling {
@@ -129,6 +131,7 @@ process run_hpx_tiling {
         val obs_id
         val image_cube
         val pixel_map_csv
+        val stokes
 
     output:
         stdout emit: stdout
@@ -139,7 +142,7 @@ process run_hpx_tiling {
             -i "$obs_id" \
             -c "$image_cube" \
             -m "$pixel_map_csv" \
-            -o "${params.WORKDIR}/${params.SBID}/${params.TILING_OUTPUT_DIR}" \
+            -o "${params.WORKDIR}/${params.TILE_COMPONENT_OUTPUT_DIR}/$stokes" \
             -t "${params.HPX_TILE_TEMPLATE}"
         """
 }
@@ -152,15 +155,24 @@ workflow tiling {
     take:
         sbid
         image_cube
+        stokes
 
     main:
-        tiling_pre_check(sbid, image_cube)
+        tiling_pre_check(sbid, image_cube, stokes)
         download_evaluation_files(tiling_pre_check.out.stdout)
         extract_metadata(download_evaluation_files.out.evaluation_files)
         get_footprint_file(download_evaluation_files.out.evaluation_files)
         generate_tile_map(get_footprint_file.out.stdout, extract_metadata.out.stdout)
         get_tile_pixel_map_csv(generate_tile_map.out.stdout)
-        run_hpx_tiling(generate_tile_map.out.stdout, image_cube, get_tile_pixel_map_csv.out.pixel_map_csv.flatten())
+        run_hpx_tiling(
+            generate_tile_map.out.stdout,
+            image_cube,
+            get_tile_pixel_map_csv.out.pixel_map_csv.flatten(),
+            stokes
+        )
+
+    emit:
+        obs_id = generate_tile_map.out.stdout
 }
 
 // ----------------------------------------------------------------------------------------
