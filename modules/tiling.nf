@@ -27,8 +27,7 @@ process tiling_pre_check {
         [ ! -d ${params.WORKDIR}/$sbid/${params.EVALUATION_FILES_DIR} ] && mkdir -p ${params.WORKDIR}/$sbid/${params.EVALUATION_FILES_DIR}
 
         # Check tiling config files
-        [ ! -f ${params.HPX_TILE_MAP_CONFIG} ] && { echo "HEALPIX tiling map configuration file does not exist"; exit 1; }
-        [ ! -f ${params.TILING_CONFIG} ] && { echo "Tiling configuration file does not exist"; exit 1; }
+        [ ! -f ${params.HPX_TILE_CONFIG} ] && { echo "HEALPIX tiling configuration file does not exist"; exit 1; }
 
         exit 0
         """
@@ -104,8 +103,8 @@ process generate_tile_map {
         """
         python3 /app/generate_tile_pixel_map.py \
             -f "${params.WORKDIR}/${params.SBID}/${params.EVALUATION_FILES_DIR}/$footprint_file" \
-            -o "${params.WORKDIR}/${params.SBID}/${params.TILING_OUTPUT_DIR}/POSSUM" \
-            -j "${params.HPX_TILE_MAP_CONFIG}"
+            -o "${params.WORKDIR}/${params.SBID}/${params.TILING_OUTPUT_DIR}" \
+            -j "${params.HPX_TILE_CONFIG}"
         """
 }
 
@@ -127,6 +126,7 @@ process run_hpx_tiling {
     containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
 
     input:
+        val obs_id
         val image_cube
         val pixel_map_csv
 
@@ -136,10 +136,11 @@ process run_hpx_tiling {
     script:
         """
         python3 -u /app/casa_tiling.py \
-            -i "$image_cube" \
+            -i "$obs_id" \
+            -c "$image_cube" \
             -m "$pixel_map_csv" \
-            -o "${params.WORKDIR}/${params.SBID}/${params.TILING_OUTPUT_DIR}/" \
-            -j "${params.TILING_CONFIG}"
+            -o "${params.WORKDIR}/${params.SBID}/${params.TILING_OUTPUT_DIR}" \
+            -t "${params.HPX_TILE_TEMPLATE}"
         """
 }
 
@@ -159,15 +160,7 @@ workflow tiling {
         get_footprint_file(download_evaluation_files.out.evaluation_files)
         generate_tile_map(get_footprint_file.out.stdout, extract_metadata.out.stdout)
         get_tile_pixel_map_csv(generate_tile_map.out.stdout)
-        run_hpx_tiling(image_cube, get_tile_pixel_map_csv.out.pixel_map_csv.flatten())
+        run_hpx_tiling(generate_tile_map.out.stdout, image_cube, get_tile_pixel_map_csv.out.pixel_map_csv.flatten())
 }
 
 // ----------------------------------------------------------------------------------------
-
-workflow {
-    sbid = "${params.SBID}"
-    image_cube = "${params.IMAGE_CUBE}"
-
-    main:
-        tiling(sbid, image_cube)
-}
