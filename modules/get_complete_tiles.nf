@@ -52,7 +52,7 @@ workflow get_complete_tiles {
         parse_complete_hpx_tiles_output(get_hpx_tiles.out.stdout.flatten())
 
     emit:
-        tiles = parse_complete_hpx_tiles_output.out.tiles
+        tiles = parse_complete_hpx_tiles_output.out.tiles.flatten()
 }
 
 // ----------------------------------------------------------------------------------------
