@@ -7,7 +7,7 @@ nextflow.enable.dsl = 2
 // ----------------------------------------------------------------------------------------
 
 process observation_start_time {
-    container = params.ASTROPY_IMAGE
+    container = params.METADATA_IMAGE
     containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
 
     input:
@@ -28,7 +28,7 @@ process observation_start_time {
 }
 
 process observation_end_time {
-    container = params.ASTROPY_IMAGE
+    container = params.METADATA_IMAGE
     containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
 
     input:
@@ -106,7 +106,7 @@ process frion_correct {
         #!/bin/bash
 
         frion_correct \
-            -o -L $q_cube $u_cube $predict_file \
+            -o $q_cube $u_cube $predict_file \
             ${params.WORKDIR}/${params.SBID}/${params.FRION_Q_CUBE_FILENAME} \
             ${params.WORKDIR}/${params.SBID}/${params.FRION_U_CUBE_FILENAME}
         """
