@@ -12,6 +12,7 @@ process get_hpx_tiles {
     containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
 
     input:
+        val obs_id
         val stokes
 
     output:
@@ -45,10 +46,11 @@ process parse_complete_hpx_tiles_output {
 
 workflow get_complete_tiles {
     take:
+        obs_id
         stokes
 
     main:
-        get_hpx_tiles(stokes)
+        get_hpx_tiles(obs_id, stokes)
         parse_complete_hpx_tiles_output(get_hpx_tiles.out.stdout.flatten())
 
     emit:

@@ -69,9 +69,9 @@ process beamcon {
         #!/bin/bash
 
         export SINGULARITY_TMPDIR=/tmp
-        export SLURM_NTASKS=16
+        export SLURM_NTASKS=${params.BEAMCON_NTASKS}
 
-	    srun -n 16 singularity exec --bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT} \
+	    srun -n ${params.BEAMCON_NTASKS} singularity exec --bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT} \
             ${params.SINGULARITY_CACHEDIR}/racstools_latest.sif \
             beamcon_3D ${image_cube} --mode total -v --override
         """
