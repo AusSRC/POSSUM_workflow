@@ -81,7 +81,7 @@ process frion_predict {
         """
 }
 
-// Apply correction
+// Apply corrections
 process frion_correct {
     container = params.IONOSPHERIC_CORRECTION_IMAGE
     containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
@@ -106,7 +106,7 @@ process frion_correct {
         #!/bin/bash
 
         frion_correct \
-            -o $q_cube $u_cube $predict_file \
+            -o -L $q_cube $u_cube $predict_file \
             ${params.WORKDIR}/${params.SBID}/${params.FRION_Q_CUBE_FILENAME} \
             ${params.WORKDIR}/${params.SBID}/${params.FRION_U_CUBE_FILENAME}
         """

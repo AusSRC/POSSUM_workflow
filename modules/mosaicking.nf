@@ -90,7 +90,7 @@ process linmos {
         """
         #!/bin/bash
 
-        // singularity pull ${params.SINGULARITY_CACHEDIR}/csirocass_yandasoft.img ${params.LINMOS_IMAGE}
+        singularity pull ${params.SINGULARITY_CACHEDIR}/csirocass_yandasoft.img ${params.LINMOS_IMAGE}
         mpiexec -np 1 singularity exec \
             --bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT} \
             ${params.SINGULARITY_CACHEDIR}/csirocass_yandasoft.img \
