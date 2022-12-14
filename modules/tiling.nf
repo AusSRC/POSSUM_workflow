@@ -60,27 +60,17 @@ process generate_tile_map {
 
     output:
         stdout emit: obs_id
+        val pixel_map_csv, emit: pixel_map_csv
 
     script:
+        pixel_map_csv = file("${params.WORKDIR}/${params.SBID}/*.csv")
+
         """
         python3 /app/generate_tile_pixel_map.py \
             -f "${params.WORKDIR}/${params.SBID}/${params.EVALUATION_FILES_DIR}/$footprint_file" \
             -o "${params.WORKDIR}/${params.SBID}" \
             -j "${params.HPX_TILE_CONFIG}"
         """
-}
-
-process get_tile_pixel_map_csv {
-    executor = 'local'
-
-    input:
-        val check
-
-    output:
-        val pixel_map_csv, emit: pixel_map_csv
-
-    exec:
-        pixel_map_csv = file("${params.WORKDIR}/${params.SBID}/*.csv")
 }
 
 process split_cube {
@@ -248,43 +238,51 @@ workflow tiling {
         tiling_pre_check(sbid, image_cube, stokes)
         get_footprint_file(evaluation_files)
         generate_tile_map(get_footprint_file.out.stdout, metadata_dir)
-        get_tile_pixel_map_csv(generate_tile_map.out.obs_id)
+        split_cube(image_cube, stokes)
+        get_split_cubes(split_cube.out.stdout)
+        split_prefix(get_split_cubes.out.subcubes.flatten())
         run_hpx_tiling(
             generate_tile_map.out.obs_id,
-            image_cube,
-            get_tile_pixel_map_csv.out.pixel_map_csv.flatten(),
+            get_split_cubes.out.subcubes.flatten(),
+            generate_tile_map.out.pixel_map_csv,
+            stokes,
+            split_prefix.out.prefix
+        )
+        get_unique_pixel_id_str(
+            run_hpx_tiling.out.stdout.collect(),
+            generate_tile_map.out.obs_id,
             stokes
         )
+        get_split_hpx_pixels(get_unique_pixel_id_str.out.pixel_id.flatten(), generate_tile_map.out.obs_id, stokes)
+        join_split_hpx_tiles(get_split_hpx_pixels.out.files, get_split_hpx_pixels.out.pixel_id, generate_tile_map.out.obs_id, stokes)
+        remove_split_hpx_tile_components(join_split_hpx_tiles.out.hpx_tile.collect(), generate_tile_map.out.obs_id, stokes)
 
     emit:
         obs_id = generate_tile_map.out.stdout
+        hpx_tiles = join_split_hpx_tiles.out.hpx_tile.collect()
 }
 
 // ----------------------------------------------------------------------------------------
 
-// workflow {
-//     image_cube = "${params.IMAGE_CUBE}"
-
-//     main:
-//         split_cube(image_cube, "i")
-//         get_split_cubes(split_cube.out.stdout)
-//         get_split_cubes.out.subcubes.view()
-//         split_prefix(get_split_cubes.out.subcubes.flatten())
-//         split_prefix.out.prefix.view()
-//         run_hpx_tiling(
-//             "2156-54",
-//             get_split_cubes.out.subcubes.flatten(),
-//             "/mnt/shared/possum/runs/10040/hpx_pixel_map_2156-54.csv",
-//             "i",
-//             split_prefix.out.prefix
-//         )
-// }
-
 workflow {
+    image_cube = "${params.IMAGE_CUBE}"
+    obs_id = "2156-54"
+    stokes = "i"
+
     main:
-        get_unique_pixel_id_str("check", "2156-54", "i")
-        get_split_hpx_pixels(get_unique_pixel_id_str.out.pixel_id.flatten(), "2156-54", "i")
-        join_split_hpx_tiles(get_split_hpx_pixels.out.files, get_split_hpx_pixels.out.pixel_id, "2156-54", "i")
-        remove_split_hpx_tile_components(join_split_hpx_tiles.out.hpx_tile.collect(), "2156-54", "i")
+        split_cube(image_cube, "i")
+        get_split_cubes(split_cube.out.stdout)
+        split_prefix(get_split_cubes.out.subcubes.flatten())
+        run_hpx_tiling(
+            obs_id,
+            get_split_cubes.out.subcubes.flatten(),
+            "/mnt/shared/possum/runs/10040/hpx_pixel_map_2156-54.csv",
+            stokes,
+            split_prefix.out.prefix
+        )
+        get_unique_pixel_id_str(run_hpx_tiling.out.stdout.collect(), obs_id, stokes)
+        get_split_hpx_pixels(get_unique_pixel_id_str.out.pixel_id.flatten(), obs_id, stokes)
+        join_split_hpx_tiles(get_split_hpx_pixels.out.files, get_split_hpx_pixels.out.pixel_id, obs_id, stokes)
+        remove_split_hpx_tile_components(join_split_hpx_tiles.out.hpx_tile.collect(), obs_id, stokes)
         remove_split_hpx_tile_components.out.stdout.view()
 }
