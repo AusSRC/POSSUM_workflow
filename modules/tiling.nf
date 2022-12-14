@@ -263,26 +263,3 @@ workflow tiling {
 }
 
 // ----------------------------------------------------------------------------------------
-
-workflow {
-    image_cube = "${params.IMAGE_CUBE}"
-    obs_id = "2156-54"
-    stokes = "i"
-
-    main:
-        split_cube(image_cube, "i")
-        get_split_cubes(split_cube.out.stdout)
-        split_prefix(get_split_cubes.out.subcubes.flatten())
-        run_hpx_tiling(
-            obs_id,
-            get_split_cubes.out.subcubes.flatten(),
-            "/mnt/shared/possum/runs/10040/hpx_pixel_map_2156-54.csv",
-            stokes,
-            split_prefix.out.prefix
-        )
-        get_unique_pixel_id_str(run_hpx_tiling.out.stdout.collect(), obs_id, stokes)
-        get_split_hpx_pixels(get_unique_pixel_id_str.out.pixel_id.flatten(), obs_id, stokes)
-        join_split_hpx_tiles(get_split_hpx_pixels.out.files, get_split_hpx_pixels.out.pixel_id, obs_id, stokes)
-        remove_split_hpx_tile_components(join_split_hpx_tiles.out.hpx_tile.collect(), obs_id, stokes)
-        remove_split_hpx_tile_components.out.stdout.view()
-}
