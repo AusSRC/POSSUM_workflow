@@ -63,7 +63,7 @@ process generate_tile_map {
         val pixel_map_csv, emit: pixel_map_csv
 
     script:
-        pixel_map_csv = file("${params.WORKDIR}/${params.SBID}/*.csv")
+        pixel_map_csv = file("${params.WORKDIR}/${params.SBID}/*.csv").first()
 
         """
         python3 /app/generate_tile_pixel_map.py \
@@ -258,7 +258,7 @@ workflow tiling {
         remove_split_hpx_tile_components(join_split_hpx_tiles.out.hpx_tile.collect(), generate_tile_map.out.obs_id, stokes)
 
     emit:
-        obs_id = generate_tile_map.out.stdout
+        obs_id = generate_tile_map.out.obs_id
         hpx_tiles = join_split_hpx_tiles.out.hpx_tile.collect()
 }
 
