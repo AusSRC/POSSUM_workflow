@@ -19,16 +19,14 @@ process tiling_pre_check {
         """
         #!/bin/bash
 
-        # Check image_cube file
+        # Check important files
         [ ! -f $image_cube ] && { echo "Image cube file does not exist"; exit 1; }
+        [ ! -f ${params.HPX_TILE_CONFIG} ] && { echo "HEALPIX tiling configuration file does not exist"; exit 1; }
 
         # Check working directories
         [ ! -d ${params.WORKDIR}/$sbid ] && mkdir -p ${params.WORKDIR}/$sbid
         [ ! -d ${params.WORKDIR}/${params.TILE_COMPONENT_OUTPUT_DIR} ] && mkdir -p ${params.WORKDIR}/${params.TILE_COMPONENT_OUTPUT_DIR}
         [ ! -d ${params.WORKDIR}/${params.TILE_COMPONENT_OUTPUT_DIR}/$stokes ] && mkdir -p ${params.WORKDIR}/${params.TILE_COMPONENT_OUTPUT_DIR}/$stokes
-
-        # Check tiling config files
-        [ ! -f ${params.HPX_TILE_CONFIG} ] && { echo "HEALPIX tiling configuration file does not exist"; exit 1; }
 
         exit 0
         """
@@ -115,12 +113,13 @@ process run_hpx_tiling {
         val image_cube
         val pixel_map_csv
         val stokes
-        val prefix
 
     output:
         stdout emit: stdout
 
     script:
+        prefix = image_cube.getBaseName()
+
         """
         python3 -u /app/casa_tiling.py \
             -i "$obs_id" \
@@ -132,7 +131,7 @@ process run_hpx_tiling {
         """
 }
 
-process get_unique_pixel_id_str {
+process get_unique_pixel_ids {
     executor = 'local'
 
     input:
@@ -180,51 +179,43 @@ process join_split_hpx_tiles {
 
     script:
         file_string = files.join(' ')
-        hpx_tile = file("${params.WORKDIR}/${params.TILE_COMPONENT_OUTPUT_DIR}/$stokes/$obs_id/PoSSUM_${pixel_id}.fits")
+        hpx_tile = file("${params.WORKDIR}/${params.TILE_COMPONENT_OUTPUT_DIR}/$stokes/$obs_id/PoSSUM_${stokes}_${pixel_id}.fits")
 
         """
         python3 -u /app/join_subcubes.py \
             -f $file_string \
-            -o ${params.WORKDIR}/${params.TILE_COMPONENT_OUTPUT_DIR}/$stokes/$obs_id/PoSSUM_${pixel_id}.fits \
+            -o $hpx_tile \
             --overwrite
         """
 }
 
-process split_prefix {
-    executor = "local"
-
-    input:
-        val image_cube
-
-    output:
-        val prefix, emit: prefix
-
-    exec:
-        prefix = image_cube.getBaseName()
-}
-
-process remove_split_hpx_tile_components {
-    input:
-        val check
-        val obs_id
-        val stokes
-
-    output:
-        stdout emit: stdout
-
-    script:
-        files = file("${params.WORKDIR}/${params.TILE_COMPONENT_OUTPUT_DIR}/$stokes/$obs_id/*split*.fits").join(' ')
-
-        """
-        #!/bin/bash
-
-        rm $files
-        """
-}
-
 // ----------------------------------------------------------------------------------------
-// Workflow
+// Workflows
 // ----------------------------------------------------------------------------------------
+
+workflow split_casa_tiling {
+    take:
+        obs_id
+        image_cube
+        stokes
+        pixel_map
+
+    main:
+        split_cube(image_cube, "i")
+        get_split_cubes(split_cube.out.stdout)
+        run_hpx_tiling(
+            obs_id,
+            get_split_cubes.out.subcubes.flatten(),
+            pixel_map,
+            stokes
+        )
+        get_unique_pixel_ids(run_hpx_tiling.out.stdout.collect(), obs_id, stokes)
+        get_split_hpx_pixels(get_unique_pixel_ids.out.pixel_id.flatten(), obs_id, stokes)
+        join_split_hpx_tiles(get_split_hpx_pixels.out.files, get_split_hpx_pixels.out.pixel_id, obs_id, stokes)
+
+    emit:
+        tiles = join_split_hpx_tiles.out.hpx_tile.collect()
+}
 
 workflow tiling {
     take:
@@ -238,28 +229,22 @@ workflow tiling {
         tiling_pre_check(sbid, image_cube, stokes)
         get_footprint_file(evaluation_files)
         generate_tile_map(get_footprint_file.out.stdout, metadata_dir)
-        split_cube(image_cube, stokes)
-        get_split_cubes(split_cube.out.stdout)
-        split_prefix(get_split_cubes.out.subcubes.flatten())
-        run_hpx_tiling(
-            generate_tile_map.out.obs_id,
-            get_split_cubes.out.subcubes.flatten(),
-            generate_tile_map.out.pixel_map_csv,
-            stokes,
-            split_prefix.out.prefix
-        )
-        get_unique_pixel_id_str(
-            run_hpx_tiling.out.stdout.collect(),
-            generate_tile_map.out.obs_id,
-            stokes
-        )
-        get_split_hpx_pixels(get_unique_pixel_id_str.out.pixel_id.flatten(), generate_tile_map.out.obs_id, stokes)
-        join_split_hpx_tiles(get_split_hpx_pixels.out.files, get_split_hpx_pixels.out.pixel_id, generate_tile_map.out.obs_id, stokes)
-        remove_split_hpx_tile_components(join_split_hpx_tiles.out.hpx_tile.collect(), generate_tile_map.out.obs_id, stokes)
+        split_casa_tiling(obs_id, image_cube, stokes, generate_tile_map.out.pixel_map_csv)
 
     emit:
         obs_id = generate_tile_map.out.obs_id
-        hpx_tiles = join_split_hpx_tiles.out.hpx_tile.collect()
+        tiles = split_casa_tiling.out.tiles()
 }
 
 // ----------------------------------------------------------------------------------------
+
+workflow {
+    image_cube = "${params.IMAGE_CUBE}"
+    obs_id = "2156-54"
+    stokes = "i"
+    pixel_map = "/mnt/shared/possum/runs/10040/hpx_pixel_map_2156-54.csv"
+
+    main:
+        split_casa_tiling(obs_id, image_cube, stokes, pixel_map)
+        split_casa_tiling.out.tiles.view()
+}
