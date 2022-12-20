@@ -6,8 +6,7 @@ nextflow.enable.dsl = 2
 // Processes
 // ----------------------------------------------------------------------------------------
 
-// Check
-process mosaicking_check {
+process check {
     executor = 'local'
 
     input:
@@ -109,14 +108,14 @@ workflow mosaicking {
         stokes
 
     main:
-        mosaicking_check(tiles, weights)
+        check(tiles, weights)
         get_pixel_id(tiles.collect(), weights.collect())
         update_linmos_config(
             get_pixel_id.out.obs_id,
             tiles.collect(),
             weights.collect(),
             stokes,
-            mosaicking_check.out.stdout
+            check.out.stdout
         )
         linmos(
             get_pixel_id.out.obs_id,

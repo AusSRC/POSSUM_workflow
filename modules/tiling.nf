@@ -6,7 +6,7 @@ nextflow.enable.dsl = 2
 // Processes
 // ----------------------------------------------------------------------------------------
 
-process tiling_pre_check {
+process check {
     input:
         val sbid
         val image_cube
@@ -131,6 +131,24 @@ process run_hpx_tiling {
         """
 }
 
+process get_tiles {
+    executor = 'local'
+
+    input:
+        val check
+        val stokes
+
+    output:
+        val files, emit: files
+
+    exec:
+        files = file("${params.WORKDIR}/${params.TILE_COMPONENT_OUTPUT_DIR}/$stokes/*.fits")
+        """
+        #!/bin/bash
+        echo $check
+        """
+}
+
 process get_unique_pixel_ids {
     executor = 'local'
 
@@ -217,6 +235,25 @@ workflow split_casa_tiling {
         tiles = join_split_hpx_tiles.out.hpx_tile.collect()
 }
 
+workflow split_tiling {
+    take:
+        sbid
+        image_cube
+        stokes
+        evaluation_files
+        metadata_dir
+
+    main:
+        check(sbid, image_cube, stokes)
+        get_footprint_file(evaluation_files)
+        generate_tile_map(get_footprint_file.out.stdout, metadata_dir)
+        split_casa_tiling(generate_tile_map.out.obs_id, image_cube, stokes, generate_tile_map.out.pixel_map_csv)
+
+    emit:
+        obs_id = generate_tile_map.out.obs_id
+        tiles = split_casa_tiling.out.tiles
+}
+
 workflow tiling {
     take:
         sbid
@@ -226,25 +263,15 @@ workflow tiling {
         metadata_dir
 
     main:
-        tiling_pre_check(sbid, image_cube, stokes)
+        check(sbid, image_cube, stokes)
         get_footprint_file(evaluation_files)
         generate_tile_map(get_footprint_file.out.stdout, metadata_dir)
-        split_casa_tiling(obs_id, image_cube, stokes, generate_tile_map.out.pixel_map_csv)
+        run_hpx_tiling(generate_tile_map.out.obs_id, image_cube, stokes, generate_tile_map.out.pixel_map_csv)
+        get_tiles(run_hpx_tiling.out.stdout, stokes)
 
     emit:
         obs_id = generate_tile_map.out.obs_id
-        tiles = split_casa_tiling.out.tiles()
+        tiles = get_tiles.out.tiles
 }
 
 // ----------------------------------------------------------------------------------------
-
-workflow {
-    image_cube = "${params.IMAGE_CUBE}"
-    obs_id = "2156-54"
-    stokes = "i"
-    pixel_map = "/mnt/shared/possum/runs/10040/hpx_pixel_map_2156-54.csv"
-
-    main:
-        split_casa_tiling(obs_id, image_cube, stokes, pixel_map)
-        split_casa_tiling.out.tiles.view()
-}
