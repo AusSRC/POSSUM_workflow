@@ -7,3 +7,4 @@ clean.sh
 *params*.yaml
 *params*.yml
 media
+tests

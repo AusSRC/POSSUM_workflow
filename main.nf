@@ -1,19 +1,20 @@
 #!/usr/bin/env nextflow
 
 nextflow.enable.dsl = 2
-include { download } from './modules/download'
+
+include { get_evaluation_files } from './modules/get_evaluation_files'
 include {
-    convolution as conv_i;
-    convolution as conv_q;
-    convolution as conv_u;
-    convolution as conv_w;
-} from './modules/convolution'
+    conv3d as conv_i;
+    conv3d as conv_q;
+    conv3d as conv_u;
+    conv3d as conv_w;
+} from './modules/conv3d'
 include { ionospheric_correction } from './modules/ionospheric_correction'
 include {
-    tiling as tile_i;
-    tiling as tile_q;
-    tiling as tile_u;
-    tiling as tile_w;
+    split_tiling as tile_i;
+    split_tiling as tile_q;
+    split_tiling as tile_u;
+    split_tiling as tile_w;
 } from './modules/tiling'
 include {
     get_complete_tiles as get_complete_tiles_i;
@@ -21,7 +22,6 @@ include {
     get_complete_tiles as get_complete_tiles_u;
     get_complete_tiles as get_complete_tiles_w;
 } from './modules/get_complete_tiles'
-include { get_evaluation_files } from './modules/get_evaluation_files'
 include {
     mosaicking as mosaicking_i;
     mosaicking as mosaicking_q;
@@ -36,7 +36,6 @@ workflow {
     weights = "${params.WEIGHTS_CUBE}"
 
     main:
-        // download(sbid)
         get_evaluation_files(sbid)
 
         conv_i(i_cube)
@@ -53,26 +52,26 @@ workflow {
         tile_u(sbid, ionospheric_correction.out.u_cube_corr, 'u', get_evaluation_files.out.evaluation_files, get_evaluation_files.out.metadata_dir)
         tile_w(sbid, conv_w.out.cube_conv, 'w', get_evaluation_files.out.evaluation_files, get_evaluation_files.out.metadata_dir)
 
-        // // Get complete tiles
-        // get_complete_tiles_i(tile_i.out.obs_id, "i")
-        // get_complete_tiles_q(tile_q.out.obs_id, "q")
-        // get_complete_tiles_u(tile_u.out.obs_id, "u")
-        // get_complete_tiles_w(tile_w.out.obs_id, "w")
+        // Get complete tiles
+        get_complete_tiles_i(tile_i.out.tiles, "i")
+        get_complete_tiles_q(tile_q.out.tiles, "q")
+        get_complete_tiles_u(tile_u.out.tiles, "u")
+        get_complete_tiles_w(tile_w.out.tiles, "w")
 
-        // // Mosaicking
-        // mosaicking_i(
-        //     get_complete_tiles_i.out.tiles,
-        //     get_complete_tiles_w.out.tiles,
-        //     "i"
-        // )
-        // mosaicking_q(
-        //     get_complete_tiles_q.out.tiles,
-        //     get_complete_tiles_w.out.tiles,
-        //     "q"
-        // )
-        // mosaicking_u(
-        //     get_complete_tiles_u.out.tiles,
-        //     get_complete_tiles_w.out.tiles,
-        //     "u"
-        // )
+        // Mosaicking
+        mosaicking_i(
+            get_complete_tiles_i.out.tiles,
+            get_complete_tiles_w.out.tiles,
+            "i"
+        )
+        mosaicking_q(
+            get_complete_tiles_q.out.tiles,
+            get_complete_tiles_w.out.tiles,
+            "q"
+        )
+        mosaicking_u(
+            get_complete_tiles_u.out.tiles,
+            get_complete_tiles_w.out.tiles,
+            "u"
+        )
 }
