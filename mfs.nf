@@ -24,9 +24,8 @@ workflow {
         get_evaluation_files(sbid)
         conv2d(i_cube, weights)
         hpx_tile_map(sbid, conv2d.out.cube_conv, get_evaluation_files.out.evaluation_files)
-
-        // tile_i(sbid, conv2d.out.cube_conv, 'i', get_evaluation_files.out.evaluation_files)
-        // tile_w(sbid, conv2d.out.weights_conv, 'w', get_evaluation_files.out.evaluation_files)
+        tile_i(sbid, hpx_tile_map.out.obs_id, conv2d.out.cube_conv, hpx_tile_map.out.tile_map, 'i')
+        tile_w(sbid, hpx_tile_map.out.obs_id, conv2d.out.weights_conv, hpx_tile_map.out.tile_map, 'w')
         // get_complete_tiles_i(tile_i.out.tiles, "i")
         // get_complete_tiles_w(tile_w.out.tiles, "w")
         // mosaicking(

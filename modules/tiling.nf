@@ -11,6 +11,7 @@ process check {
         val sbid
         val image_cube
         val stokes
+        val tile_map
 
     output:
         stdout emit: stdout
@@ -21,6 +22,7 @@ process check {
 
         # Check important files
         [ ! -f $image_cube ] && { echo "Image cube file does not exist"; exit 1; }
+        [ ! -f $tile_map ] && { echo "HPX tile map file does not exist"; exit 1; }
         [ ! -f ${params.HPX_TILE_CONFIG} ] && { echo "HEALPIX tiling configuration file does not exist"; exit 1; }
 
         # Check working directories
@@ -30,55 +32,6 @@ process check {
 
         exit 0
         """
-}
-
-process get_footprint_file {
-    container = params.METADATA_IMAGE
-    containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
-
-    input:
-        val evaluation_files
-
-    output:
-        stdout emit: stdout
-
-    script:
-        """
-        python3 /app/get_footprint_files.py -f $evaluation_files
-        """
-}
-
-process generate_tile_map {
-    container = params.HPX_TILING_IMAGE
-    containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
-
-    input:
-        val footprint_file
-        val extract_check
-
-    output:
-        stdout emit: obs_id
-
-    script:
-        """
-        python3 /app/generate_tile_pixel_map.py \
-            -f "${params.WORKDIR}/${params.SBID}/${params.EVALUATION_FILES_DIR}/$footprint_file" \
-            -o "${params.WORKDIR}/${params.SBID}" \
-            -j "${params.HPX_TILE_CONFIG}"
-        """
-}
-
-process get_tile_map {
-    executor = 'local'
-
-    input:
-        val check
-
-    output:
-        val pixel_map_csv, emit: pixel_map_csv
-
-    exec:
-        pixel_map_csv = file("${params.WORKDIR}/${params.SBID}/*.csv").first()
 }
 
 process split_cube {
@@ -225,8 +178,8 @@ workflow split_casa_tiling {
     take:
         obs_id
         image_cube
-        stokes
         pixel_map
+        stokes
 
     main:
         split_cube(image_cube, stokes)
@@ -248,39 +201,33 @@ workflow split_casa_tiling {
 workflow split_tiling {
     take:
         sbid
+        obs_id
         image_cube
+        tile_map
         stokes
-        evaluation_files
 
     main:
-        check(sbid, image_cube, stokes)
-        get_footprint_file(evaluation_files)
-        generate_tile_map(get_footprint_file.out.stdout)
-        get_tile_map(generate_tile_map.out.obs_id)
-        split_casa_tiling(generate_tile_map.out.obs_id, image_cube, stokes, get_tile_map.out.pixel_map_csv)
+        check(sbid, image_cube, stokes, tile_map)
+        split_casa_tiling(obs_id, image_cube, tile_map, stokes)
 
     emit:
-        obs_id = generate_tile_map.out.obs_id
         tiles = split_casa_tiling.out.tiles
 }
 
 workflow tiling {
     take:
         sbid
+        obs_id
         image_cube
+        tile_map
         stokes
-        evaluation_files
 
     main:
-        check(sbid, image_cube, stokes)
-        get_footprint_file(evaluation_files)
-        generate_tile_map(get_footprint_file.out.stdout)
-        get_tile_map(generate_tile_map.out.obs_id)
-        run_hpx_tiling(generate_tile_map.out.obs_id, image_cube, stokes, get_tile_map.out.pixel_map_csv)
+        check(sbid, image_cube, stokes, tile_map)
+        run_hpx_tiling(obs_id, image_cube, tile_map, stokes)
         get_tiles(run_hpx_tiling.out.stdout, stokes)
 
     emit:
-        obs_id = generate_tile_map.out.obs_id
         tiles = get_tiles.out.tiles
 }
 

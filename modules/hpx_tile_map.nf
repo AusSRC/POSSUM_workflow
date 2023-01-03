@@ -98,6 +98,7 @@ workflow hpx_tile_map {
         get_tile_map(generate_tile_map.out.obs_id)
 
     emit:
+        obs_id = generate_tile_map.out.obs_id
         tile_map = get_tile_map.out.pixel_map_csv
 }
 
