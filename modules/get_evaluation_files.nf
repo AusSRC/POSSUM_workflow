@@ -42,25 +42,6 @@ process download {
         """
 }
 
-process extract {
-    input:
-        val check
-
-    output:
-        stdout emit: stdout
-
-    script:
-        """
-        #!/usr/bin/python3
-        import os
-        import glob
-
-        files = glob.glob("${params.WORKDIR}/${params.SBID}/${params.EVALUATION_FILES_DIR}/" + "*metadata*.tar")
-        for f in files:
-            os.system(f"tar -xvf {f} -C ${params.WORKDIR}/${params.SBID}/${params.EVALUATION_FILES_DIR}")
-        """
-}
-
 // ----------------------------------------------------------------------------------------
 // Workflow
 // ----------------------------------------------------------------------------------------
@@ -72,11 +53,9 @@ workflow get_evaluation_files {
     main:
         check(sbid)
         download(check.out.stdout)
-        extract(download.out.evaluation_files)
 
     emit:
         evaluation_files = download.out.evaluation_files
-        metadata_dir = extract.out.stdout
 }
 
 // ----------------------------------------------------------------------------------------

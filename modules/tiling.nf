@@ -58,17 +58,27 @@ process generate_tile_map {
 
     output:
         stdout emit: obs_id
-        val pixel_map_csv, emit: pixel_map_csv
 
     script:
-        pixel_map_csv = file("${params.WORKDIR}/${params.SBID}/*.csv").first()
-
         """
         python3 /app/generate_tile_pixel_map.py \
             -f "${params.WORKDIR}/${params.SBID}/${params.EVALUATION_FILES_DIR}/$footprint_file" \
             -o "${params.WORKDIR}/${params.SBID}" \
             -j "${params.HPX_TILE_CONFIG}"
         """
+}
+
+process get_tile_map {
+    executor = 'local'
+
+    input:
+        val check
+
+    output:
+        val pixel_map_csv, emit: pixel_map_csv
+
+    exec:
+        pixel_map_csv = file("${params.WORKDIR}/${params.SBID}/*.csv").first()
 }
 
 process split_cube {
@@ -219,7 +229,7 @@ workflow split_casa_tiling {
         pixel_map
 
     main:
-        split_cube(image_cube, "i")
+        split_cube(image_cube, stokes)
         get_split_cubes(split_cube.out.stdout)
         run_hpx_tiling(
             obs_id,
@@ -241,13 +251,13 @@ workflow split_tiling {
         image_cube
         stokes
         evaluation_files
-        metadata_dir
 
     main:
         check(sbid, image_cube, stokes)
         get_footprint_file(evaluation_files)
-        generate_tile_map(get_footprint_file.out.stdout, metadata_dir)
-        split_casa_tiling(generate_tile_map.out.obs_id, image_cube, stokes, generate_tile_map.out.pixel_map_csv)
+        generate_tile_map(get_footprint_file.out.stdout)
+        get_tile_map(generate_tile_map.out.obs_id)
+        split_casa_tiling(generate_tile_map.out.obs_id, image_cube, stokes, get_tile_map.out.pixel_map_csv)
 
     emit:
         obs_id = generate_tile_map.out.obs_id
@@ -260,13 +270,13 @@ workflow tiling {
         image_cube
         stokes
         evaluation_files
-        metadata_dir
 
     main:
         check(sbid, image_cube, stokes)
         get_footprint_file(evaluation_files)
-        generate_tile_map(get_footprint_file.out.stdout, metadata_dir)
-        run_hpx_tiling(generate_tile_map.out.obs_id, image_cube, stokes, generate_tile_map.out.pixel_map_csv)
+        generate_tile_map(get_footprint_file.out.stdout)
+        get_tile_map(generate_tile_map.out.obs_id)
+        run_hpx_tiling(generate_tile_map.out.obs_id, image_cube, stokes, get_tile_map.out.pixel_map_csv)
         get_tiles(run_hpx_tiling.out.stdout, stokes)
 
     emit:

@@ -69,7 +69,6 @@ workflow conv3d {
     main:
         copy_beamlog(cube, evaluation_files)
         beamcon(cube, copy_beamlog.out.beamlog)
-        beamcon.out.cube_conv.view()
 
     emit:
         cube_conv = beamcon.out.cube_conv

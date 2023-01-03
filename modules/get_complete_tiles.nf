@@ -6,13 +6,27 @@ nextflow.enable.dsl = 2
 // Processes
 // ----------------------------------------------------------------------------------------
 
+process check_tiles {
+    input:
+        val check
+
+    output:
+        stdout emit: stdout
+
+    script:
+        """
+        #!/bin/bash
+        echo $check
+        """
+}
+
 // Find complete tiles
 process get_hpx_tiles {
     container = params.HPX_TILING_IMAGE
     containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
 
     input:
-        val obs_id
+        val check
         val stokes
 
     output:
@@ -46,11 +60,12 @@ process parse_complete_hpx_tiles_output {
 
 workflow get_complete_tiles {
     take:
-        obs_id
+        check
         stokes
 
     main:
-        get_hpx_tiles(obs_id, stokes)
+        check_tiles(check)
+        get_hpx_tiles(check_tiles.out.stdout, stokes)
         parse_complete_hpx_tiles_output(get_hpx_tiles.out.stdout.flatten())
 
     emit:

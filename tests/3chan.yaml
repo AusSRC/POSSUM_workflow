@@ -5,4 +5,6 @@
   "U_CUBE": "/mnt/shared/home/ashen/POSSUM/data/3chan/image.restored.u.SB10040.contcube_3chan.fits",
   "WEIGHTS_CUBE": "/mnt/shared/home/ashen/POSSUM/data/3chan/weights.restored.i.SB10040.contcube_3chan.fits",
   "BEAMCON_NTASKS": "1",
+  "NSPLIT": "3",
+  "WORKDIR": "/mnt/shared/possum/runs/3chan"
 }
