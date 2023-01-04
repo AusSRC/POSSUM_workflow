@@ -30,6 +30,35 @@ process check {
         """
 }
 
+process get_obs_id {
+    executor = 'local'
+
+    input:
+        val image_cube
+
+    output:
+        val obs_id, emit: obs_id
+
+    exec:
+        filename = file(image_cube).getBaseName()
+        (_, _, obs_id, _) = (filename =~ /(\S*)_(\d{4}-\d{2})(\S*)$/)[0]
+}
+
+// This method was required for earlier SBIDs e.g. 9992
+process get_obs_id_from_footprint_file {
+    executor = 'local'
+
+    input:
+        val footprint_file
+
+    output:
+        val obs_id, emit: obs_id
+
+    exec:
+        filename = file(footprint_file).getBaseName()
+        (_, _, obs_id, _) = (filename =~ /(\S*)_(\d{4}-\d{2})(\S*)$/)[0]
+}
+
 process get_footprint_file {
     container = params.METADATA_IMAGE
     containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
@@ -55,14 +84,16 @@ process generate_tile_map {
 
     input:
         val footprint_file
+        val obs_id
 
     output:
-        stdout emit: obs_id
+        stdout emit: stdout
 
     script:
         """
         python3 /app/generate_tile_pixel_map.py \
             -f $footprint_file \
+            -i $obs_id \
             -o "${params.WORKDIR}/${params.SBID}" \
             -j "${params.HPX_TILE_CONFIG}"
         """
@@ -94,11 +125,12 @@ workflow hpx_tile_map {
     main:
         check(sbid, image_cube)
         get_footprint_file(evaluation_files)
-        generate_tile_map(get_footprint_file.out.stdout)
-        get_tile_map(generate_tile_map.out.obs_id)
+        get_obs_id_from_footprint_file(get_footprint_file.out.stdout)
+        generate_tile_map(get_footprint_file.out.stdout, get_obs_id_from_footprint_file.out.obs_id)
+        get_tile_map(generate_tile_map.out.stdout)
 
     emit:
-        obs_id = generate_tile_map.out.obs_id
+        obs_id = get_obs_id_from_footprint_file.out.obs_id
         tile_map = get_tile_map.out.pixel_map_csv
 }
 

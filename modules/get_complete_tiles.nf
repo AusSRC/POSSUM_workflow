@@ -12,7 +12,7 @@ process get_hpx_tiles {
     containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
 
     input:
-        val check
+        val tiling_check
         val stokes
 
     output:
@@ -46,11 +46,11 @@ process parse_complete_hpx_tiles_output {
 
 workflow get_complete_tiles {
     take:
-        check
+        tiling_check
         stokes
 
     main:
-        get_hpx_tiles(check, stokes)
+        get_hpx_tiles(tiling_check, stokes)
         parse_complete_hpx_tiles_output(get_hpx_tiles.out.stdout.flatten())
 
     emit:
