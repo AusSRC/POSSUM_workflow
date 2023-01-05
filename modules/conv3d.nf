@@ -40,7 +40,7 @@ process beamcon {
 
     script:
         file = file(image_cube)
-        cube_conv = file.getParent() + file.getBaseName() + '.total.' + file.getExtension()
+        cube_conv = "${file.getParent()}/${file.getBaseName()}.total.${file.getExtension()}"
 
         """
         #!/bin/bash

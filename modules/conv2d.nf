@@ -33,6 +33,68 @@ process get_beam {
         """
 }
 
+// This is required for the beamcon "robust" method.
+process nan_to_zero_image {
+    container = params.METADATA_IMAGE
+    containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
+
+    input:
+        val image_cube
+
+    output:
+        val image_cube_zeros, emit: image_cube_zeros
+
+    script:
+        filename = file(image_cube)
+        image_cube_zeros = "${filename.getParent()}/${filename.getBaseName()}.zeros.${filename.getExtension()}"
+
+        """
+        #!python3
+
+        import numpy as np
+        from astropy.io import fits
+
+        with fits.open("$image_cube", mode="readonly") as hdu:
+            header = hdu[0].header
+            data = np.nan_to_num(hdu[0].data)
+            header['HISTORY'] = 'Replace NaN with zero'
+        hdu = fits.PrimaryHDU(data=data, header=header)
+        hdul = fits.HDUList([hdu])
+        hdul.writeto("$image_cube_zeros", overwrite=True)
+        """
+}
+
+// This is required for the beamcon "robust" method.
+process nan_to_zero_weights {
+    container = params.METADATA_IMAGE
+    containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
+
+    input:
+        val weights_cube
+
+    output:
+        val weights_cube_zeros, emit: weights_cube_zeros
+
+    script:
+        filename = file(weights_cube)
+        weights_cube_zeros = "${filename.getParent()}/${filename.getBaseName()}.zeros.${filename.getExtension()}"
+
+        """
+        #!python3
+
+        import numpy as np
+        from astropy.io import fits
+
+        with fits.open("$weights_cube", mode="readonly") as hdu:
+            header = hdu[0].header
+            data = np.nan_to_num(hdu[0].data)
+            header['HISTORY'] = 'Replace NaN with zero'
+        hdu = fits.PrimaryHDU(data=data, header=header)
+        hdul = fits.HDUList([hdu])
+        hdul.writeto("$weights_cube_zeros", overwrite=True)
+        """
+}
+
 process beamcon_2D_image {
     containerOptions = "${params.BEAMCON_CLUSTER_OPTIONS}"
 
@@ -133,8 +195,10 @@ workflow conv2d {
 
     main:
         get_beam(image_cube, weights_cube)
-        beamcon_2D_image(get_beam.out.image_cube)
-        beamcon_2D_weights(get_beam.out.weights_cube)
+        nan_to_zero_image(image_cube)
+        nan_to_zero_weights(weights_cube)
+        beamcon_2D_image(nan_to_zero_image.out.image_cube_zeros)
+        beamcon_2D_weights(nan_to_zero_weights.out.weights_cube_zeros)
         get_conv_image_cube(image_cube, beamcon_2D_image.out.stdout)
         get_conv_weights_cube(weights_cube, beamcon_2D_weights.out.stdout)
 

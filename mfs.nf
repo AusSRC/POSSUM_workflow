@@ -9,11 +9,6 @@ include {
     tiling as tile_i;
     tiling as tile_w;
 } from './modules/tiling'
-include {
-    get_complete_tiles as get_complete_tiles_i;
-    get_complete_tiles as get_complete_tiles_w;
-} from './modules/get_complete_tiles'
-include { mosaicking } from './modules/mosaicking'
 
 workflow {
     sbid = "${params.SBID}"
