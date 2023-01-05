@@ -6,38 +6,47 @@ nextflow.enable.dsl = 2
 // Processes
 // ----------------------------------------------------------------------------------------
 
-// Find complete tiles
-process get_hpx_tiles {
-    container = params.HPX_TILING_IMAGE
-    containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
-
-    input:
-        val tiling_check
-        val stokes
-
-    output:
-        stdout emit: stdout
-
-    script:
-        """
-        python3 -u /app/tile_components.py \
-            -f "${params.WORKDIR}/${params.TILE_COMPONENT_OUTPUT_DIR}/$stokes" \
-            -m "${params.HPX_TILE_MAP}"
-        """
-}
-
-// Create channel from complete tile output
-process parse_complete_hpx_tiles_output {
+process find_complete {
     executor = 'local'
 
     input:
-        val hpx_pixel_list
+        val tileMap
+        val stokes
 
     output:
-        val tiles, emit: tiles
+        val tileIds, emit: tileIds
+        val tileHPXFileMap, emit: tileHPXFileMap
 
     exec:
-        tiles = Eval.me(hpx_pixel_list)
+        tileIds = []
+        tileObsIdMap = [:]
+        tileHPXFileMap = [:]
+        csvBody = tileMap.readLines()*.split(',')
+        csvBody.remove(0)  // remove header
+        csvBody.each{ tileObsIdMap[it[0]] = it[1..-1] }
+
+        for (item in tileObsIdMap) {
+            tileId = item.key
+            files = []
+            for (obsId in item.value) {
+                search = "${params.WORKDIR}/${params.TILE_COMPONENT_OUTPUT_DIR}/$stokes/$obsId/*$tileId*"
+                matchFile = file(search)
+
+                // Add to map if file exists and there is only one
+                if (matchFile.size() == 1) {
+                    files.add(matchFile.first())
+                }
+                if (matchFile.size() > 1) {
+                    throw new Exception("More than one file found for HPX tile id $tileId")
+                }
+            }
+
+            // Completed tiles (all components available) only
+            if (files.size() == item.value.size()) {
+                tileIds.add(tileId)
+                tileHPXFileMap[tileId] = files
+            }
+        }
 }
 
 // ----------------------------------------------------------------------------------------
@@ -46,15 +55,15 @@ process parse_complete_hpx_tiles_output {
 
 workflow get_complete_tiles {
     take:
-        tiling_check
+        tileMap
         stokes
 
     main:
-        get_hpx_tiles(tiling_check, stokes)
-        parse_complete_hpx_tiles_output(get_hpx_tiles.out.stdout.flatten())
+        find_complete(tileMap, stokes)
 
     emit:
-        tiles = parse_complete_hpx_tiles_output.out.tiles.flatten()
+        tile_ids = find_complete.out.tileIds
+        id_to_files = find_complete.out.tileHPXFileMap
 }
 
 // ----------------------------------------------------------------------------------------

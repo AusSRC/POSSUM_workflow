@@ -6,45 +6,44 @@ nextflow.enable.dsl = 2
 // Processes
 // ----------------------------------------------------------------------------------------
 
-process check {
+process linmos_setup {
+    output:
+        stdout emit: stdout
+        val container, emit: container
+
+    script:
+        container = file("${params.SINGULARITY_CACHEDIR}/csirocass_yandasoft.img")
+
+        """
+        #!/bin/bash
+
+        # check image exists
+        [ ! -f ${container} ] && { singularity pull ${container} ${params.LINMOS_IMAGE}; }
+
+        # check output directories
+        [ ! -d ${params.WORKDIR}/${params.HPX_TILE_OUTPUT_DIR} ] && mkdir -p ${params.WORKDIR}/${params.HPX_TILE_OUTPUT_DIR}
+        [ ! -d ${params.WORKDIR}/${params.HPX_TILE_OUTPUT_DIR}/${params.LINMOS_CONFIG_SUBDIR} ] && mkdir -p ${params.WORKDIR}/${params.HPX_TILE_OUTPUT_DIR}/${params.LINMOS_CONFIG_SUBDIR}
+
+        exit 0
+        """
+}
+
+process get_files {
     executor = 'local'
 
     input:
-        val cubes
-        val weights
+        val tile_id
+        val image_cube_map
+        val weights_cube_map
+        val check
 
     output:
-        stdout emit: stdout
+        val image_cubes, emit: image_cubes
+        val weights_cubes, emit: weights_cubes
 
     exec:
-        if (cubes.size() != weights.size()) {
-            throw new Exception("Number of healpix pixel files and weights files are not the same")
-        }
-}
-
-process get_pixel_id {
-    input:
-        val cubes
-        val weights
-
-    output:
-        stdout emit: obs_id
-
-    script:
-        """
-        #!/usr/bin/env python3
-
-        cube_files = [c.rsplit('/', 1)[1] for c in '$cubes'.split(' ')]
-        weights_files = [w.rsplit('/', 1)[1] for w in '$weights'.split(' ')]
-        cube_pixel_ids = [c.split('.')[0].split('-')[-1] for c in cube_files]
-        weight_pixel_ids = [w.split('.')[0].split('-')[-1] for w in weights_files]
-        ids = cube_pixel_ids + weight_pixel_ids
-
-        if all(id == ids[0] for id in ids):
-            print(ids[0], end='')
-        else:
-            raise Exception("Not all healpix pixel IDs are the same for input image and weight cubes.")
-        """
+        image_cubes = "[${image_cube_map[tile_id].join(',').replace('.fits', '')}]"
+        weights_cubes = "[${weights_cube_map[tile_id].join(',').replace('.fits', '')}]"
 }
 
 // Generate configuration
@@ -53,46 +52,45 @@ process update_linmos_config {
     containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
 
     input:
-        val obs_id
-        val cubes
-        val weights
+        val tile_id
+        val image_cubes
+        val weights_cubes
         val stokes
-        val check
 
     output:
-        val "${params.WORKDIR}/${params.HPX_TILE_OUTPUT_DIR}/$obs_id-$stokes-linmos.config", emit: linmos_config
+        val "${params.WORKDIR}/${params.HPX_TILE_OUTPUT_DIR}/${params.LINMOS_CONFIG_SUBDIR}/$tile_id-$stokes-linmos.config", emit: linmos_config
 
     script:
         """
         python3 -u /app/update_linmos_config.py \
             -c ${params.LINMOS_CONFIG_TEMPLATE} \
-            -o ${params.WORKDIR}/${params.HPX_TILE_OUTPUT_DIR}/$obs_id-$stokes-linmos.config \
-            --linmos.names "$cubes" \
-            --linmos.weights "$weights" \
-            --linmos.outname "${params.WORKDIR}/${params.HPX_TILE_OUTPUT_DIR}/$obs_id-$stokes" \
-            --linmos.outweight "${params.WORKDIR}/${params.HPX_TILE_OUTPUT_DIR}/weights.$obs_id-$stokes"
+            -o ${params.WORKDIR}/${params.HPX_TILE_OUTPUT_DIR}/${params.LINMOS_CONFIG_SUBDIR}/$tile_id-$stokes-linmos.config \
+            --linmos.names "$image_cubes" \
+            --linmos.weights "$weights_cubes" \
+            --linmos.outname "${params.WORKDIR}/${params.HPX_TILE_OUTPUT_DIR}/$tile_id-$stokes" \
+            --linmos.outweight "${params.WORKDIR}/${params.HPX_TILE_OUTPUT_DIR}/weights.$tile_id-$stokes"
         """
 }
 
 // Linear mosaicking
 process linmos {
     input:
-        val obs_id
+        val tile_id
         val stokes
         val linmos_config
+        val container
 
     output:
-        val "${params.WORKDIR}/${params.HPX_TILE_OUTPUT_DIR}/$obs_id-$stokes", emit: mosaic
-        val "${params.WORKDIR}/${params.HPX_TILE_OUTPUT_DIR}/weights.$obs_id-$stokes", emit: mosaic_weights
+        val "${params.WORKDIR}/${params.HPX_TILE_OUTPUT_DIR}/$tile_id-${stokes}.fits", emit: mosaic
+        val "${params.WORKDIR}/${params.HPX_TILE_OUTPUT_DIR}/weights.$tile_id-${stokes}.fits", emit: mosaic_weights
 
     script:
         """
         #!/bin/bash
 
-        singularity pull ${params.SINGULARITY_CACHEDIR}/csirocass_yandasoft.img ${params.LINMOS_IMAGE}
         mpiexec -np 1 singularity exec \
             --bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT} \
-            ${params.SINGULARITY_CACHEDIR}/csirocass_yandasoft.img \
+            $container \
             linmos-mpi -c $linmos_config
         """
 }
@@ -103,29 +101,20 @@ process linmos {
 
 workflow mosaicking {
     take:
-        tiles
-        weights
+        tile_id
+        image_cube_map
+        weights_cube_map
         stokes
 
     main:
-        check(tiles, weights)
-        get_pixel_id(tiles.collect(), weights.collect())
-        update_linmos_config(
-            get_pixel_id.out.obs_id,
-            tiles.collect(),
-            weights.collect(),
-            stokes,
-            check.out.stdout
-        )
-        linmos(
-            get_pixel_id.out.obs_id,
-            stokes,
-            update_linmos_config.out.linmos_config
-        )
+        linmos_setup()
+        get_files(tile_id, image_cube_map, weights_cube_map, linmos_setup.out.stdout)
+        update_linmos_config(tile_id, get_files.out.image_cubes, get_files.out.weights_cubes, stokes)
+        linmos(tile_id, stokes, update_linmos_config.out.linmos_config, linmos_setup.out.container)
 
     emit:
         mosaic = linmos.out.mosaic
-        weights = linmos.out.mosaic_weights
+        mosaic_weights = linmos.out.mosaic_weights
 }
 
 // ----------------------------------------------------------------------------------------
