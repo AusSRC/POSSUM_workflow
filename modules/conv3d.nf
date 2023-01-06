@@ -28,7 +28,7 @@ process copy_beamlog {
 }
 
 // Run Beamcon_3D for convolution
-process beamcon {
+process beamcon_3D {
     containerOptions = "${params.BEAMCON_CLUSTER_OPTIONS}"
 
     input:

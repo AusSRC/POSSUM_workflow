@@ -81,7 +81,7 @@ process run_hpx_tiling {
         stdout emit: stdout
 
     script:
-        prefix = image_cube.getBaseName()
+        prefix = file(image_cube).getBaseName()
 
         """
         python3 -u /app/casa_tiling.py \
