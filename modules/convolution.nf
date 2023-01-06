@@ -183,10 +183,10 @@ workflow conv3d {
         extract_beamlog(evaluation_files)
         copy_beamlog(cube, evaluation_files, extract_beamlog.out.stdout)
         beamcon_3D(cube, copy_beamlog.out.beamlog)
-        get_conv_cube(cube, "${params.BEAMCON_3D_SUFFIX}", beamcon_3D.out.stdout)
+        get_cube_conv(cube, "${params.BEAMCON_3D_SUFFIX}", beamcon_3D.out.stdout)
 
     emit:
-        cube_conv = get_conv_cube.out.cube_conv
+        cube_conv = get_cube_conv.out.cube_conv
 }
 
 // ----------------------------------------------------------------------------------------

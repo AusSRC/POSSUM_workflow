@@ -7,8 +7,8 @@ include {
     conv3d as conv_i;
     conv3d as conv_q;
     conv3d as conv_u;
-    conv3d as conv_w;
 } from './modules/convolution'
+include { hpx_tile_map } from './modules/hpx_tile_map'
 include { ionospheric_correction } from './modules/ionospheric_correction'
 include {
     split_tiling as tile_i;
@@ -27,17 +27,19 @@ workflow {
     main:
         get_evaluation_files(sbid)
 
-        conv_i(i_cube)
-        conv_q(q_cube)
-        conv_u(u_cube)
-        conv_w(weights)
+        conv_i(i_cube, get_evaluation_files.out.evaluation_files, "i")
+        conv_q(q_cube, get_evaluation_files.out.evaluation_files, "q")
+        conv_u(u_cube, get_evaluation_files.out.evaluation_files, "u")
 
         // Ionospheric correction
         ionospheric_correction(conv_q.out.cube_conv, conv_u.out.cube_conv)
 
+        // Produce tile map
+        hpx_tile_map(sbid, conv_i.out.cube_conv, get_evaluation_files.out.evaluation_files)
+
         // Tiling
-        tile_i(sbid, conv_i.out.cube_conv, 'i', get_evaluation_files.out.evaluation_files, get_evaluation_files.out.metadata_dir)
-        tile_q(sbid, ionospheric_correction.out.q_cube_corr, 'q', get_evaluation_files.out.evaluation_files, get_evaluation_files.out.metadata_dir)
-        tile_u(sbid, ionospheric_correction.out.u_cube_corr, 'u', get_evaluation_files.out.evaluation_files, get_evaluation_files.out.metadata_dir)
-        tile_w(sbid, conv_w.out.cube_conv, 'w', get_evaluation_files.out.evaluation_files, get_evaluation_files.out.metadata_dir)
+        tile_i(sbid, hpx_tile_map.out.obs_id, conv_i.out.cube_conv, hpx_tile_map.out.tile_map, 'i')
+        tile_q(sbid, hpx_tile_map.out.obs_id, ionospheric_correction.out.q_cube_corr, hpx_tile_map.out.tile_map, 'q')
+        tile_u(sbid, hpx_tile_map.out.obs_id, ionospheric_correction.out.u_cube_corr, hpx_tile_map.out.tile_map, 'u')
+        tile_w(sbid, hpx_tile_map.out.obs_id, weights, hpx_tile_map.out.tile_map, 'w')
 }

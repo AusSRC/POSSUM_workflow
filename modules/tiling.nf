@@ -67,6 +67,37 @@ process get_split_cubes {
         subcubes = file("${params.WORKDIR}/${params.SBID}/${params.SPLIT_CUBE_SUBDIR}/*.fits")
 }
 
+// This is required for the beamcon "robust" method.
+process nan_to_zero {
+    container = params.METADATA_IMAGE
+    containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
+
+    input:
+        val image_cube
+
+    output:
+        val image_cube_zeros, emit: image_cube_zeros
+
+    script:
+        filename = file(image_cube)
+        image_cube_zeros = "${filename.getParent()}/${filename.getBaseName()}.zeros.${filename.getExtension()}"
+
+        """
+        #!python3
+
+        import numpy as np
+        from astropy.io import fits
+
+        with fits.open("$image_cube", mode="readonly") as hdu:
+            header = hdu[0].header
+            data = np.nan_to_num(hdu[0].data)
+            header['HISTORY'] = 'Replace NaN with zero'
+        hdu = fits.PrimaryHDU(data=data, header=header)
+        hdul = fits.HDUList([hdu])
+        hdul.writeto("$image_cube_zeros", overwrite=True)
+        """
+}
+
 process run_hpx_tiling {
     container = params.HPX_TILING_IMAGE
     containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
@@ -129,28 +160,11 @@ process get_unique_pixel_ids {
             .unique()
 }
 
-process get_split_hpx_pixels {
-    executor = 'local'
-
-    input:
-        val pixel_id
-        val obs_id
-        val stokes
-
-    output:
-        val files, emit: files
-        val pixel_id, emit: pixel_id
-
-    exec:
-       files = file("${params.WORKDIR}/${params.TILE_COMPONENT_OUTPUT_DIR}/$stokes/$obs_id/*$pixel_id*.fits")
-}
-
 process join_split_hpx_tiles {
     container = params.HPX_TILING_IMAGE
     containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
 
     input:
-        val files
         val pixel_id
         val obs_id
         val stokes
@@ -159,6 +173,7 @@ process join_split_hpx_tiles {
         val hpx_tile, emit: hpx_tile
 
     script:
+        files = file("${params.WORKDIR}/${params.TILE_COMPONENT_OUTPUT_DIR}/$stokes/$obs_id/*$pixel_id*.fits")
         file_string = files.join(' ')
         hpx_tile = file("${params.WORKDIR}/${params.TILE_COMPONENT_OUTPUT_DIR}/$stokes/$obs_id/PoSSUM_${stokes}_${pixel_id}.fits")
 
@@ -184,15 +199,15 @@ workflow split_casa_tiling {
     main:
         split_cube(image_cube, stokes)
         get_split_cubes(split_cube.out.stdout)
+        nan_to_zero(get_split_cubes.out.subcubes.flatten())
         run_hpx_tiling(
             obs_id,
-            get_split_cubes.out.subcubes.flatten(),
+            nan_to_zero.out.image_cube_zeros,
             pixel_map,
             stokes
         )
         get_unique_pixel_ids(run_hpx_tiling.out.stdout.collect(), obs_id, stokes)
-        get_split_hpx_pixels(get_unique_pixel_ids.out.pixel_id.flatten(), obs_id, stokes)
-        join_split_hpx_tiles(get_split_hpx_pixels.out.files, get_split_hpx_pixels.out.pixel_id, obs_id, stokes)
+        join_split_hpx_tiles(get_unique_pixel_ids.out.pixel_id.flatten(), obs_id, stokes)
 
     emit:
         tiles = join_split_hpx_tiles.out.hpx_tile.collect()
