@@ -63,22 +63,96 @@ process beamcon_2D {
         """
 }
 
+process extract_beamlog {
+    container = params.METADATA_IMAGE
+    containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
+
+    input:
+        val evaluation_files
+
+    output:
+        stdout emit: stdout
+
+    script:
+        """
+        python3 /app/get_file_in_compressed_folder.py \
+            -p $evaluation_files \
+            -f calibration-metadata-processing-logs \
+            -k SpectralCube_BeamLogs/beamlog
+        """
+}
+
+process copy_beamlog {
+    executor = "local"
+    input:
+        val image_cube
+        val evaluation_files
+        val extract
+
+    output:
+        val beamlog, emit: beamlog
+
+    script:
+        cube = file(image_cube)
+        beamlog_src = file("${evaluation_files}/SpectralCube_BeamLogs/beamlog*.i.*beam00.txt").first()
+        beamlog_dest = cube.getParent() + "/beamlog." + cube.getBaseName() + ".txt"
+        beamlog = file(beamlog_dest)
+
+    if (!beamlog.exists())
+        """
+        #!/bin/bash
+
+        cp $beamlog_src $beamlog_dest
+        """
+    else
+        """
+        #!/bin/bash
+        echo $beamlog_dest
+        """
+}
+
+process beamcon_3D {
+    containerOptions = "${params.BEAMCON_CLUSTER_OPTIONS}"
+
+    input:
+        val image_cube
+        val beamlog
+
+    output:
+        stdout emit: stdout
+
+    script:
+        file = file(image_cube)
+
+        """
+        #!/bin/bash
+
+        export SINGULARITY_TMPDIR=${params.SINGULARITY_TMPDIR}
+        export SLURM_NTASKS=${params.BEAMCON_NTASKS}
+
+	    singularity exec ${params.SINGULARITY_CACHEDIR}/racstools_latest.sif \
+            beamcon_3D ${image_cube} \
+            --mode total \
+            --suffix ${params.BEAMCON_3D_SUFFIX} \
+            --bmaj ${params.BMAJ} --bmin ${params.BMIN} --bpa ${params.BPA} \
+            -v
+        """
+}
+
 process get_cube_conv {
     executor = 'local'
 
     input:
         val image_cube
+        val suffix
         val check
 
     output:
         val cube_conv, emit: cube_conv
 
     exec:
-        image_cube_file = file(image_cube)
-        parent = image_cube_file.getParent()
-        basename = image_cube_file.getBaseName()
-        extension = image_cube_file.getExtension()
-        cube_conv = file("${parent}/${basename}*${params.BEAMCON_2D_SUFFIX}*${extension}").first()
+        cube = file(image_cube)
+        cube_conv = file("${cube.getParent()}/${cube.getBaseName()}*${suffix}*${cube.getExtension()}").first()
 }
 
 // ----------------------------------------------------------------------------------------
@@ -93,10 +167,26 @@ workflow conv2d {
     main:
         nan_to_zero(image_cube)
         beamcon_2D(nan_to_zero.out.image_cube_zeros)
-        get_cube_conv(image_cube, beamcon_2D.out.stdout)
+        get_cube_conv(image_cube, "${params.BEAMCON_2D_SUFFIX}", beamcon_2D.out.stdout)
 
     emit:
         cube_conv = get_cube_conv.out.cube_conv
+}
+
+workflow conv3d {
+    take:
+        cube
+        evaluation_files
+        stokes
+
+    main:
+        extract_beamlog(evaluation_files)
+        copy_beamlog(cube, evaluation_files, extract_beamlog.out.stdout)
+        beamcon_3D(cube, copy_beamlog.out.beamlog)
+        get_conv_cube(cube, "${params.BEAMCON_3D_SUFFIX}", beamcon_3D.out.stdout)
+
+    emit:
+        cube_conv = get_conv_cube.out.cube_conv
 }
 
 // ----------------------------------------------------------------------------------------

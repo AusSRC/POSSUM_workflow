@@ -3,7 +3,7 @@
 nextflow.enable.dsl = 2
 
 include { get_evaluation_files } from './modules/get_evaluation_files'
-include { conv2d } from './modules/conv2d'
+include { conv2d } from './modules/convolution'
 include { hpx_tile_map } from './modules/hpx_tile_map'
 include {
     tiling as tile_image;

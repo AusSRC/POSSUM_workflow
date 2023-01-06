@@ -8,7 +8,7 @@ include {
     conv3d as conv_q;
     conv3d as conv_u;
     conv3d as conv_w;
-} from './modules/conv3d'
+} from './modules/convolution'
 include { ionospheric_correction } from './modules/ionospheric_correction'
 include {
     split_tiling as tile_i;
@@ -16,17 +16,6 @@ include {
     split_tiling as tile_u;
     split_tiling as tile_w;
 } from './modules/tiling'
-include {
-    get_complete_tiles as get_complete_tiles_i;
-    get_complete_tiles as get_complete_tiles_q;
-    get_complete_tiles as get_complete_tiles_u;
-    get_complete_tiles as get_complete_tiles_w;
-} from './modules/get_complete_tiles'
-include {
-    mosaicking as mosaicking_i;
-    mosaicking as mosaicking_q;
-    mosaicking as mosaicking_u;
-} from './modules/mosaicking'
 
 workflow {
     sbid = "${params.SBID}"
@@ -51,27 +40,4 @@ workflow {
         tile_q(sbid, ionospheric_correction.out.q_cube_corr, 'q', get_evaluation_files.out.evaluation_files, get_evaluation_files.out.metadata_dir)
         tile_u(sbid, ionospheric_correction.out.u_cube_corr, 'u', get_evaluation_files.out.evaluation_files, get_evaluation_files.out.metadata_dir)
         tile_w(sbid, conv_w.out.cube_conv, 'w', get_evaluation_files.out.evaluation_files, get_evaluation_files.out.metadata_dir)
-
-        // Get complete tiles
-        get_complete_tiles_i(tile_i.out.tiles, "i")
-        get_complete_tiles_q(tile_q.out.tiles, "q")
-        get_complete_tiles_u(tile_u.out.tiles, "u")
-        get_complete_tiles_w(tile_w.out.tiles, "w")
-
-        // Mosaicking
-        mosaicking_i(
-            get_complete_tiles_i.out.tiles,
-            get_complete_tiles_w.out.tiles,
-            "i"
-        )
-        mosaicking_q(
-            get_complete_tiles_q.out.tiles,
-            get_complete_tiles_w.out.tiles,
-            "q"
-        )
-        mosaicking_u(
-            get_complete_tiles_u.out.tiles,
-            get_complete_tiles_w.out.tiles,
-            "u"
-        )
 }

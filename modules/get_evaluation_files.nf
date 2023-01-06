@@ -30,7 +30,7 @@ process download {
         val check
 
     output:
-        val "${params.WORKDIR}/${params.SBID}/${params.EVALUATION_FILES_DIR}", emit: evaluation_files
+        stdout emit: stdout
 
     script:
         """
