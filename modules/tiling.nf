@@ -43,7 +43,7 @@ process split_cube {
         val stokes
 
     output:
-        stdout emit: stdout
+        stdout emit: files_str
 
     script:
         """
@@ -58,13 +58,14 @@ process get_split_cubes {
     executor = "local"
 
     input:
-        val check
+        val files_str
 
     output:
         val subcubes, emit: subcubes
 
     exec:
-        subcubes = file("${params.WORKDIR}/${params.SBID}/${params.SPLIT_CUBE_SUBDIR}/*.fits")
+        filenames = files_str.split(',')
+        subcubes = filenames.collect{ it = file("${params.WORKDIR}/${params.SBID}/${params.SPLIT_CUBE_SUBDIR}/$it") }
 }
 
 // This is required for the beamcon "robust" method.
@@ -173,7 +174,7 @@ process join_split_hpx_tiles {
         val hpx_tile, emit: hpx_tile
 
     script:
-        files = file("${params.WORKDIR}/${params.TILE_COMPONENT_OUTPUT_DIR}/$stokes/$obs_id/*$pixel_id*.fits")
+        files = file("${params.WORKDIR}/${params.TILE_COMPONENT_OUTPUT_DIR}/$stokes/$obs_id/*${stokes}*$pixel_id*.fits")
         file_string = files.join(' ')
         hpx_tile = file("${params.WORKDIR}/${params.TILE_COMPONENT_OUTPUT_DIR}/$stokes/$obs_id/PoSSUM_${stokes}_${pixel_id}.fits")
 
@@ -198,7 +199,7 @@ workflow split_casa_tiling {
 
     main:
         split_cube(image_cube, stokes)
-        get_split_cubes(split_cube.out.stdout)
+        get_split_cubes(split_cube.out.files_str)
         nan_to_zero(get_split_cubes.out.subcubes.flatten())
         run_hpx_tiling(
             obs_id,
@@ -247,3 +248,14 @@ workflow tiling {
 }
 
 // ----------------------------------------------------------------------------------------
+
+workflow {
+    sbid = '10040'
+    obs_id = '2156-54'
+    image_cube = '/mnt/shared/possum/data/3chan/image.restored.i.SB10040.contcube_3chan.fits'
+    tile_map = '/mnt/shared/possum/runs/3chan/10040/hpx_pixel_map_2156-54.csv'
+    stokes = 'i'
+
+    main:
+        split_tiling(sbid, obs_id, image_cube, tile_map, stokes)
+}
