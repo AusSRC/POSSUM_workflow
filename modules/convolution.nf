@@ -130,7 +130,8 @@ process beamcon_3D {
         export SINGULARITY_TMPDIR=${params.SINGULARITY_TMPDIR}
         export SLURM_NTASKS=${params.BEAMCON_NTASKS}
 
-	    singularity exec ${params.SINGULARITY_CACHEDIR}/racstools_latest.sif \
+	    srun -n ${params.BEAMCON_NTASKS} singularity exec --bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT} \
+            ${params.SINGULARITY_CACHEDIR}/racstools_latest.sif \
             beamcon_3D ${image_cube} \
             --mode total \
             --suffix ${params.BEAMCON_3D_SUFFIX} \

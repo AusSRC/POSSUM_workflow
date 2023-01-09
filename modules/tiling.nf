@@ -157,7 +157,7 @@ process get_unique_pixel_ids {
 
     exec:
         pixel_id = file("${params.WORKDIR}/${params.TILE_COMPONENT_OUTPUT_DIR}/$stokes/$obs_id/*.fits")
-            .collect{ path -> path.baseName.split('-')[-1] }
+            .collect{ path -> (path.baseName.split('-')[-1] =~ /\d+/).findAll().first() }
             .unique()
 }
 
@@ -174,7 +174,7 @@ process join_split_hpx_tiles {
         val hpx_tile, emit: hpx_tile
 
     script:
-        files = file("${params.WORKDIR}/${params.TILE_COMPONENT_OUTPUT_DIR}/$stokes/$obs_id/*${stokes}*$pixel_id*.fits")
+        files = file("${params.WORKDIR}/${params.TILE_COMPONENT_OUTPUT_DIR}/$stokes/$obs_id/*${obs_id}-${pixel_id}*.fits")
         file_string = files.join(' ')
         hpx_tile = file("${params.WORKDIR}/${params.TILE_COMPONENT_OUTPUT_DIR}/$stokes/$obs_id/PoSSUM_${stokes}_${pixel_id}.fits")
 
@@ -208,6 +208,7 @@ workflow split_casa_tiling {
             stokes
         )
         get_unique_pixel_ids(run_hpx_tiling.out.stdout.collect(), obs_id, stokes)
+        get_unique_pixel_ids.out.pixel_id.view()
         join_split_hpx_tiles(get_unique_pixel_ids.out.pixel_id.flatten(), obs_id, stokes)
 
     emit:
@@ -248,14 +249,3 @@ workflow tiling {
 }
 
 // ----------------------------------------------------------------------------------------
-
-workflow {
-    sbid = '10040'
-    obs_id = '2156-54'
-    image_cube = '/mnt/shared/possum/data/3chan/image.restored.i.SB10040.contcube_3chan.fits'
-    tile_map = '/mnt/shared/possum/runs/3chan/10040/hpx_pixel_map_2156-54.csv'
-    stokes = 'i'
-
-    main:
-        split_tiling(sbid, obs_id, image_cube, tile_map, stokes)
-}
