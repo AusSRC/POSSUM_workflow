@@ -47,6 +47,9 @@ process split_cube {
 
     script:
         """
+        export CASADATA=${params.CASADATA}/casadata
+        export PYTHONPATH='\$PYTHONPATH:${params.CASADATA}'
+
         python3 -u /app/split_cube.py \
             -i "$image_cube" \
             -o "${params.WORKDIR}/${params.SBID}/${params.SPLIT_CUBE_SUBDIR}" \
@@ -116,6 +119,9 @@ process run_hpx_tiling {
         prefix = file(image_cube).getBaseName()
 
         """
+        export CASADATA=${params.CASADATA}/casadata
+        export PYTHONPATH='\$PYTHONPATH:${params.CASADATA}'
+
         python3 -u /app/casa_tiling.py \
             -i "$obs_id" \
             -c "$image_cube" \
@@ -208,7 +214,6 @@ workflow split_casa_tiling {
             stokes
         )
         get_unique_pixel_ids(run_hpx_tiling.out.stdout.collect(), obs_id, stokes)
-        get_unique_pixel_ids.out.pixel_id.view()
         join_split_hpx_tiles(get_unique_pixel_ids.out.pixel_id.flatten(), obs_id, stokes)
 
     emit:

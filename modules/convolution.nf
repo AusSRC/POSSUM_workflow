@@ -37,11 +37,28 @@ process nan_to_zero {
         """
 }
 
+process beamcon_setup {
+    output:
+        stdout emit: stdout
+        val container, emit: container
+
+    script:
+        container = "${params.SINGULARITY_CACHEDIR}/racstools_latest.sif"
+
+        """
+        #!/bin/bash
+
+        # check image exists
+        [ ! -f ${container} ] && { singularity pull ${container} ${params.RACS_TOOLS_IMAGE}; }
+        exit 0
+        """
+}
 process beamcon_2D {
     containerOptions = "${params.BEAMCON_CLUSTER_OPTIONS}"
 
     input:
         val image
+        val container
 
     output:
         stdout emit: stdout
@@ -56,7 +73,7 @@ process beamcon_2D {
         export SLURM_NTASKS=${params.BEAMCON_NTASKS}
 
 	    srun -n ${params.BEAMCON_NTASKS} singularity exec --bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT} \
-            ${params.SINGULARITY_CACHEDIR}/racstools_latest.sif \
+            ${container} \
             beamcon_2D ${image} \
             --bmaj ${params.BMAJ} --bmin ${params.BMIN} --bpa ${params.BPA} \
             -v
@@ -117,6 +134,7 @@ process beamcon_3D {
     input:
         val image_cube
         val beamlog
+        val container
 
     output:
         stdout emit: stdout
@@ -131,7 +149,7 @@ process beamcon_3D {
         export SLURM_NTASKS=${params.BEAMCON_NTASKS}
 
 	    srun -n ${params.BEAMCON_NTASKS} singularity exec --bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT} \
-            ${params.SINGULARITY_CACHEDIR}/racstools_latest.sif \
+            ${container} \
             beamcon_3D ${image_cube} \
             --mode total \
             --suffix ${params.BEAMCON_3D_SUFFIX} \
@@ -166,8 +184,9 @@ workflow conv2d {
         stokes
 
     main:
+        beamcon_setup()
         nan_to_zero(image_cube)
-        beamcon_2D(nan_to_zero.out.image_cube_zeros)
+        beamcon_2D(nan_to_zero.out.image_cube_zeros, beamcon_setup.out.container)
         get_cube_conv(image_cube, "${params.BEAMCON_2D_SUFFIX}", beamcon_2D.out.stdout)
 
     emit:
@@ -181,9 +200,10 @@ workflow conv3d {
         stokes
 
     main:
+        beamcon_setup()
         extract_beamlog(evaluation_files)
         copy_beamlog(cube, evaluation_files, extract_beamlog.out.stdout)
-        beamcon_3D(cube, copy_beamlog.out.beamlog)
+        beamcon_3D(cube, copy_beamlog.out.beamlog, beamcon_setup.out.container)
         get_cube_conv(cube, "${params.BEAMCON_3D_SUFFIX}", beamcon_3D.out.stdout)
 
     emit:
