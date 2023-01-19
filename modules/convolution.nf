@@ -6,6 +6,45 @@ nextflow.enable.dsl = 2
 // Processes
 // ----------------------------------------------------------------------------------------
 
+process split_cube {
+    container = params.HPX_TILING_IMAGE
+    containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
+
+    input:
+        val image_cube
+
+    output:
+        stdout emit: files_str
+
+    script:
+        """
+        # Make working directory
+        [ ! -d ${params.WORKDIR}/${params.SBID}/${params.ZERO_SPLIT_CUBE_SUBDIR} ] && mkdir -p ${params.WORKDIR}/${params.SBID}/${params.ZERO_SPLIT_CUBE_SUBDIR}
+
+        export CASADATA=${params.CASADATA}/casadata
+        export PYTHONPATH='\$PYTHONPATH:${params.CASADATA}'
+
+        python3 -u /app/split_cube.py \
+            -i "$image_cube" \
+            -o "${params.WORKDIR}/${params.SBID}/${params.ZERO_SPLIT_CUBE_SUBDIR}" \
+            -n ${params.NAN_TO_ZERO_NSPLIT}
+        """
+}
+
+process get_split_cubes {
+    executor = "local"
+
+    input:
+        val files_str
+
+    output:
+        val subcubes, emit: subcubes
+
+    exec:
+        filenames = files_str.split(',')
+        subcubes = filenames.collect{ it = file("${params.WORKDIR}/${params.SBID}/${params.ZERO_SPLIT_CUBE_SUBDIR}/$it") }
+}
+
 // This is required for the beamcon "robust" method.
 process nan_to_zero {
     container = params.METADATA_IMAGE
@@ -18,7 +57,8 @@ process nan_to_zero {
         val image_cube_zeros, emit: image_cube_zeros
 
     script:
-        filename = file(image_cube)
+        def filename = file(image_cube)
+        // TODO: why does def not work here?
         image_cube_zeros = "${filename.getParent()}/${filename.getBaseName()}.zeros.${filename.getExtension()}"
 
         """
@@ -34,6 +74,32 @@ process nan_to_zero {
         hdu = fits.PrimaryHDU(data=data, header=header)
         hdul = fits.HDUList([hdu])
         hdul.writeto("$image_cube_zeros", overwrite=True)
+        """
+}
+
+process join_split_cubes {
+    container = params.HPX_TILING_IMAGE
+    containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
+
+    input:
+        val image_cube
+        val check
+
+    output:
+        val output_cube, emit: output_cube
+
+    script:
+        def parent = file(image_cube).getParent()
+        def basename = file(image_cube).getBaseName()
+        def files = file("${params.WORKDIR}/${params.SBID}/${params.ZERO_SPLIT_CUBE_SUBDIR}/*$basename*zeros*.fits")
+        def file_string = files.join(' ')
+        output_cube = "${parent}/${basename}.zeros.fits"
+
+        """
+        python3 -u /app/join_subcubes.py \
+            -f $file_string \
+            -o $output_cube \
+            --overwrite
         """
 }
 
@@ -110,9 +176,9 @@ process copy_beamlog {
         val beamlog, emit: beamlog
 
     script:
-        cube = file(image_cube)
-        beamlog_src = file("${evaluation_files}/SpectralCube_BeamLogs/beamlog*.i.*beam00.txt").first()
-        beamlog_dest = cube.getParent() + "/beamlog." + cube.getBaseName() + ".txt"
+        def cube = file(image_cube)
+        def beamlog_src = file("${evaluation_files}/SpectralCube_BeamLogs/beamlog*.i.*beam00.txt").first()
+        def beamlog_dest = "${cube.getParent()}/beamlog.${cube.getBaseName()}.zeros.txt"
         beamlog = file(beamlog_dest)
 
     if (!beamlog.exists())
@@ -178,6 +244,24 @@ process get_cube_conv {
 // Workflow
 // ----------------------------------------------------------------------------------------
 
+workflow nan_to_zero_large {
+    take:
+        image_cube
+
+    main:
+        split_cube(image_cube)
+        split_cube.out.files_str.view()
+        get_split_cubes(split_cube.out.files_str)
+        get_split_cubes.out.subcubes.view()
+        nan_to_zero(get_split_cubes.out.subcubes.flatten())
+        nan_to_zero.out.image_cube_zeros.view()
+        join_split_cubes(image_cube, nan_to_zero.out.image_cube_zeros.collect())
+        join_split_cubes.out.output_cube.view()
+
+    emit:
+        image_cube_zeros = join_split_cubes.out.output_cube
+}
+
 workflow conv2d {
     take:
         image_cube
@@ -201,9 +285,10 @@ workflow conv3d {
 
     main:
         beamcon_setup()
+        nan_to_zero_large(cube)
         extract_beamlog(evaluation_files)
         copy_beamlog(cube, evaluation_files, extract_beamlog.out.stdout)
-        beamcon_3D(cube, copy_beamlog.out.beamlog, beamcon_setup.out.container)
+        beamcon_3D(nan_to_zero_large.out.image_cube_zeros, copy_beamlog.out.beamlog, beamcon_setup.out.container)
         get_cube_conv(cube, "${params.BEAMCON_3D_SUFFIX}", beamcon_3D.out.stdout)
 
     emit:

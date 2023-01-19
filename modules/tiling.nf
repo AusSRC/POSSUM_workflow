@@ -206,10 +206,9 @@ workflow split_casa_tiling {
     main:
         split_cube(image_cube, stokes)
         get_split_cubes(split_cube.out.files_str)
-        nan_to_zero(get_split_cubes.out.subcubes.flatten())
         run_hpx_tiling(
             obs_id,
-            nan_to_zero.out.image_cube_zeros,
+            get_split_cubes.out.subcubes.flatten(),
             pixel_map,
             stokes
         )
