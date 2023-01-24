@@ -1,29 +1,35 @@
 <h1 align="center"><a>POSSUM workflows</a></h1>
 
-[AusSRC](https://aussrc.org) contribution to the POSSUM data post-processing pipelines.
+[AusSRC](https://aussrc.org) contribution to the POSSUM data pre-processing pipelines. The pre-processing of POSSUM data involves 
 
-## Overview
+* Convolution to a common beam (18 arcseconds) [https://github.com/AlecThomson/RACS-tools]
+* Ionospheric Faraday rotation correction (for Stokes Q and U) [https://github.com/CIRADA-Tools/FRion]
+* Tiling [https://github.com/Sebokolodi/SkyTiles]
 
-The AusSRC contribution performs the following steps:
+Then, complete HPX tiles are mosaicked together and uploaded to [CADC](https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/en/) in a final step. The workflow can be applied to MFS images or full spectral cubes. In this repository there are pipelines for:
 
-- Convolution
-- Ionospheric correction
-- Super-mosaicking
-- Tiling
-- Stokes I component catalogue cross-matching
-- [CADC](https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/en/) data transfer
-
-We will write a [Nextflow](https://www.nextflow.io/) for these steps.
+* Pre-processing of MFS images (`mfs_preprocess.nf`)
+* Mosaicking MFS images (`mfs_mosaic.nf`)
+* Pre-processing of spectral cube images (`main.nf`)
+* Mosacking spectral cube images (TBA)
 
 ## Run
 
-The workflow can be triggered from the head node of a slurm cluster with configuration in `params.yaml` using the following command:
+To run the pipeline you need to specify a main script, a parameter file (or provide a list of parameters as arguments) and a deployment environment. Currently we only support `setonix` or `carnaby` (AusSRC development cluster) as the deployment environments. A template parameter file will be provided further
+
+Example code for running these pipelines
 
 ```
-nextflow run https://github.com/AusSRC/POSSUM_workflow -params-file params.yaml -profile carnaby -resume
+nextflow run <FILE> -params-file <PARAMETER_FILE> -profile <ENVIRONMENT> -resume
 ```
 
-### Configuration
+or 
+
+```
+nextflow run https://github.com/AusSRC/POSSUM_workflow -main-script <PIPELINE> -params-file <PARAMETER_FILE> -profile <ENVIRONMENT> -resume
+```
+
+## Configuration
 
 Current recommended content of the `params.yaml` file
 
@@ -35,29 +41,16 @@ Current recommended content of the `params.yaml` file
   "I_CUBE": "image.restored.i.SB10040.contcube_3chan.fits",
   "Q_CUBE": "image.restored.q.SB10040.contcube_3chan.fits",
   "U_CUBE": "image.restored.u.SB10040.contcube_3chan.fits",
+  "WEIGHTS_CUBE": "weights.restored.i.SB10040.contcube_3chan.fits",
 
-  "FRION_PREDICT_OUTFILE": "frion_predict.txt",
+  "NSPLIT": "3",
+  "NAN_TO_ZERO_NSPLIT": "3"
 }
 ```
 
-# Modules
+### Splitting
 
-## Tiling
+We use the [CASA imregrid](https://casadocs.readthedocs.io/en/v6.2.0/_modules/casatasks/analysis/imregrid.html) method to do tiling and reprojection onto a HPX grid. CASA has not been written to allow us to parallelise the tiling and reprojection over a number of nodes, and the size of our worker nodes is not sufficient to store entire cubes in memory (160 GB for band 1 images). We therefore need to split the cubes by frequency, run our program, then join at the end.
 
-Involves tiling and reprojection
+We do this twice in our full pre-processing pipeline code: for convolution to allow for using the `robust` method (requires setting nan to zero), and for `imregrid` to produce tiles as described earlier. The number of splits in frequency are specified by the `NAN_TO_ZERO_NSPLIT` and `NSPLIT` parameters respectively. Depending on the size of the cube and the size of the worker nodes, users will have to set these parameters to optimally utilise computing resources.
 
-### Configuration
-
-Parameters required specifically for these steps include:
-
-```
-"IMAGE_CUBE": "/mnt/shared/home/ashen/POSSUM/tiling_reprojection/data/image.i.SB10040.cont.taylor.0.restored.fits",
-"NSIDE": "32",
-"TILING_OUTPUT_DIRECTORY": "headers",
-"REPROJECTION_OUTPUT_DIRECTORY": "outputs",
-"SINGULARITY_CACHEDIR": "/mnt/shared/possum/apps/singularity",
-"MONTAGE_IMAGE": "docker://astroaustin/montage:latest",
-"POSSUM_TILING_COMPONENT": "docker://astroaustin/generate_healpix_headers:latest"
-```
-
-Note error messages that are raised when running [Montage `mProjectCube`](http://montage.ipac.caltech.edu/docs/mProjectCube.html) are ignored and will not stop the execution of the pipeline because the program will raise an error when there is nothing in the region specified by the automatically generated header.
