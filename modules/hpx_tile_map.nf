@@ -41,7 +41,7 @@ process get_obs_id {
 
     exec:
         filename = file(image_cube).getBaseName()
-        (_, _, obs_id, _) = (filename =~ /(\S*)_(\d{4}-\d{2})(\S*)$/)[0]
+        (_, _, obs_id, _) = (filename =~ /(\S*)_(\d{4}-\d{2}[AB]?)(\S*)$/)[0]
 }
 
 // This method was required for earlier SBIDs e.g. 9992
@@ -56,7 +56,7 @@ process get_obs_id_from_footprint_file {
 
     exec:
         filename = file(footprint_file).getBaseName()
-        (_, _, obs_id, _) = (filename =~ /(\S*)_(\d{4}-\d{2})(\S*)$/)[0]
+        (_, _, obs_id, _) = (filename =~ /(\S*)_(\d{4}-\d{2}[AB]?)(\S*)$/)[0]
 }
 
 process get_footprint_file {
