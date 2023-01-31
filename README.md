@@ -1,6 +1,6 @@
 <h1 align="center"><a>POSSUM workflows</a></h1>
 
-[AusSRC](https://aussrc.org) contribution to the POSSUM data pre-processing pipelines. The pre-processing of POSSUM data involves 
+[AusSRC](https://aussrc.org) contribution to the POSSUM data pre-processing pipelines. The pre-processing of POSSUM data involves
 
 * Convolution to a common beam (18 arcseconds) [https://github.com/AlecThomson/RACS-tools]
 * Ionospheric Faraday rotation correction (for Stokes Q and U) [https://github.com/CIRADA-Tools/FRion]
@@ -23,7 +23,7 @@ Example code for running these pipelines
 nextflow run <FILE> -params-file <PARAMETER_FILE> -profile <ENVIRONMENT> -resume
 ```
 
-or 
+or
 
 ```
 nextflow run https://github.com/AusSRC/POSSUM_workflow -main-script <PIPELINE> -params-file <PARAMETER_FILE> -profile <ENVIRONMENT> -resume

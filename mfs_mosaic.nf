@@ -6,6 +6,7 @@ include {
     get_complete_tiles as get_complete_tiles_i;
     get_complete_tiles as get_complete_tiles_w;
 } from './modules/get_complete_tiles'
+include { rename_tiles } from './modules/rename_tiles'
 include { mosaicking } from './modules/mosaicking'
 
 workflow {
@@ -19,5 +20,10 @@ workflow {
             get_complete_tiles_i.out.id_to_files,
             get_complete_tiles_w.out.id_to_files,
             "i"
+        )
+        rename_tiles(
+            mosaicking.out.tile_id,
+            mosaicking.out.image_cube,
+            mosaicking.out.weights_cube
         )
 }

@@ -58,17 +58,17 @@ process update_linmos_config {
         val stokes
 
     output:
-        val "${params.WORKDIR}/${params.HPX_TILE_OUTPUT_DIR}/${params.LINMOS_CONFIG_SUBDIR}/$tile_id-$stokes-linmos.config", emit: linmos_config
+        val "${params.WORKDIR}/${params.HPX_TILE_OUTPUT_DIR}/${params.LINMOS_CONFIG_SUBDIR}/${params.HPX_TILE_PREFIX}.${tile_id}.${stokes}.linmos.config", emit: linmos_config
 
     script:
         """
         python3 -u /app/update_linmos_config.py \
             -c ${params.LINMOS_CONFIG_TEMPLATE} \
-            -o ${params.WORKDIR}/${params.HPX_TILE_OUTPUT_DIR}/${params.LINMOS_CONFIG_SUBDIR}/$tile_id-$stokes-linmos.config \
+            -o ${params.WORKDIR}/${params.HPX_TILE_OUTPUT_DIR}/${params.LINMOS_CONFIG_SUBDIR}/${params.HPX_TILE_PREFIX}.${tile_id}.${stokes}.linmos.config \
             --linmos.names "$image_cubes" \
             --linmos.weights "$weights_cubes" \
-            --linmos.outname "${params.WORKDIR}/${params.HPX_TILE_OUTPUT_DIR}/$tile_id-$stokes" \
-            --linmos.outweight "${params.WORKDIR}/${params.HPX_TILE_OUTPUT_DIR}/weights.$tile_id-$stokes"
+            --linmos.outname "${params.WORKDIR}/${params.HPX_TILE_OUTPUT_DIR}/${params.HPX_TILE_PREFIX}.${tile_id}.${stokes}" \
+            --linmos.outweight "${params.WORKDIR}/${params.HPX_TILE_OUTPUT_DIR}/weights.${params.HPX_TILE_PREFIX}.${tile_id}.${stokes}"
         """
 }
 
@@ -113,6 +113,7 @@ workflow mosaicking {
         linmos(tile_id, stokes, update_linmos_config.out.linmos_config, linmos_setup.out.container)
 
     emit:
+        tile_id = tile_id
         mosaic = linmos.out.mosaic
         mosaic_weights = linmos.out.mosaic_weights
 }
