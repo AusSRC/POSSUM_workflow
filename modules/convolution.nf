@@ -103,7 +103,7 @@ process join_split_cubes {
         """
 }
 
-process beamcon_setup {
+process pull_racstools_image {
     output:
         stdout emit: stdout
         val container, emit: container
@@ -268,9 +268,8 @@ workflow conv2d {
         stokes
 
     main:
-        beamcon_setup()
-        nan_to_zero(image_cube)
-        beamcon_2D(nan_to_zero.out.image_cube_zeros, beamcon_setup.out.container)
+        pull_racstools_image()
+        beamcon_2D(image_cube, pull_racstools_image.out.container)
         get_cube_conv(image_cube, "${params.BEAMCON_2D_SUFFIX}", beamcon_2D.out.stdout)
 
     emit:
@@ -284,11 +283,11 @@ workflow conv3d {
         stokes
 
     main:
-        beamcon_setup()
+        pull_racstools_image()
         nan_to_zero_large(cube)
         extract_beamlog(evaluation_files)
         copy_beamlog(cube, evaluation_files, extract_beamlog.out.stdout)
-        beamcon_3D(nan_to_zero_large.out.image_cube_zeros, copy_beamlog.out.beamlog, beamcon_setup.out.container)
+        beamcon_3D(nan_to_zero_large.out.image_cube_zeros, copy_beamlog.out.beamlog, pull_racstools_image.out.container)
         get_cube_conv(cube, "${params.BEAMCON_3D_SUFFIX}", beamcon_3D.out.stdout)
 
     emit:
