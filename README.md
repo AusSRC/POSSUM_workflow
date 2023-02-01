@@ -25,7 +25,7 @@ nextflow run <FILE> -params-file <PARAMETER_FILE> -profile <DEPLOYMENT> -resume
 or
 
 ```
-nextflow run https://github.com/AusSRC/POSSUM_workflow -main-script <PIPELINE> -params-file <PARAMETER_FILE> -profile <DEPLOYMENT> -resume
+nextflow run https://github.com/AusSRC/POSSUM_workflow -r main -main-script <PIPELINE> -params-file <PARAMETER_FILE> -profile <DEPLOYMENT> -resume
 ```
 
 ### File structure
@@ -51,6 +51,27 @@ This section describes how the output files are organised. All outputs are store
 │   │       └── <OBS_ID_N>              # All tiled images a separated by observation ID
 │   └── HPX_TILE_OUTPUT_DIR             # Complete tiles
 └── ...
+```
+
+### Slurm
+
+A example `sbatch` script is provided for running the pipeline on Setonix.
+
+```
+#!/bin/bash
+
+#SBATCH --partition=work
+#SBATCH --account=ja3
+#SBATCH --time=24:00:00
+#SBATCH --mem-per-cpu=128G
+#SBATCH --job-name=possum_pipeline_test
+
+module load singularity/3.8.6
+module load nextflow/22.04.3
+
+nextflow run https://github.com/AusSRC/POSSUM_workflow -r main -main-script main.nf \
+  -params-file /scratch/ja3/ashen/possum/pipeline/tests/10040.yaml \
+  -profile setonix -resume
 ```
 
 ## Configuration
