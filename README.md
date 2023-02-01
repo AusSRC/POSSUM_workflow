@@ -8,25 +8,24 @@
 
 Then, complete HPX tiles are mosaicked together and uploaded to [CADC](https://www.cadc-ccda.hia-iha.nrc-cnrc.gc.ca/en/) in a final step. The workflow can be applied to MFS images or full spectral cubes. In this repository there are pipelines for:
 
-* Pre-processing of MFS images (`mfs_preprocess.nf`)
-* Mosaicking MFS images (`mfs_mosaic.nf`)
+* Pre-processing of MFS images (`mfs.nf`)
 * Pre-processing of spectral cube images (`main.nf`)
-* Mosacking spectral cube images (TBA)
+* Mosaicking to complete tile images (`mosaic.nf`)
 
 ## Run
 
-To run the pipeline you need to specify a main script, a parameter file (or provide a list of parameters as arguments) and a deployment environment. Currently we only support `setonix` or `carnaby` (AusSRC development cluster) as the deployment environments. A template parameter file will be provided further
+To run the pipeline you need to specify a main script, a parameter file (or provide a list of parameters as arguments) and a deployment. Currently we only support `setonix` or `carnaby` (AusSRC development cluster) as the deployments. A template parameter file will be provided further
 
 Example code for running these pipelines
 
 ```
-nextflow run <FILE> -params-file <PARAMETER_FILE> -profile <ENVIRONMENT> -resume
+nextflow run <FILE> -params-file <PARAMETER_FILE> -profile <DEPLOYMENT> -resume
 ```
 
 or
 
 ```
-nextflow run https://github.com/AusSRC/POSSUM_workflow -main-script <PIPELINE> -params-file <PARAMETER_FILE> -profile <ENVIRONMENT> -resume
+nextflow run https://github.com/AusSRC/POSSUM_workflow -main-script <PIPELINE> -params-file <PARAMETER_FILE> -profile <DEPLOYMENT> -resume
 ```
 
 ### File structure
@@ -56,7 +55,7 @@ This section describes how the output files are organised. All outputs are store
 
 ## Configuration
 
-Current recommended content of the `params.yaml` file
+Current recommended content of the `params.yaml` file for running the `main.nf` pipeline
 
 ```
 {
@@ -72,6 +71,20 @@ Current recommended content of the `params.yaml` file
   "NAN_TO_ZERO_NSPLIT": "3"
 }
 ```
+
+For processing MFS images (using the `mfs.nf` pipeline) only a subset of these parameters are required
+
+```
+{
+  "SBID": "44127",
+  "WORKDIR": "/mnt/shared/possum/runs/mfs",
+  "I_CUBE": "image.i.POSSUM_0101-72A_band2.SB44127.cont.taylor.0.restored.conv.fits",
+  "WEIGHTS_CUBE": "weights.i.POSSUM_0101-72A_band2.SB44127.cont.taylor.0.fits",
+  "BEAMCON_NTASKS": "1"
+}
+```
+
+**NOTE**: We set `BEAMCON_NTASKS = 1` to use only one node for beamcon for the MFS image (do not need to run this in parallel).
 
 ### Splitting
 
