@@ -29,6 +29,31 @@ or
 nextflow run https://github.com/AusSRC/POSSUM_workflow -main-script <PIPELINE> -params-file <PARAMETER_FILE> -profile <ENVIRONMENT> -resume
 ```
 
+### File structure
+
+This section describes how the output files are organised. All outputs are stored under the location specified by the `WORKDIR` parameter. Here is the structure beneath
+
+```
+.
+├── ...
+├── WORKDIR                             # Parent directory specified in params.WORKDIR
+│   ├── <SBID_1>
+│   ├── <SBID_2>
+│   ├── ...
+│   ├── <SBID_N>                        # A sub-folder for each SBID containing observation metadata
+│   │   ├── evaluation_files            # Download evaluation files
+│   │   └── hpx_tile_map.csv            # Generated map for HPX pixels covered by image cube (map file)
+│   ├── TILE_COMPONENT_OUTPUT_DIR       # HPX tile components for each SBID are stored here
+│   │   ├── i
+│   │   ├── ...
+│   │   └── q                           # Subdirectory for each stokes parameter
+│   │       ├── <OBS_ID_1>
+│   │       ├── ...
+│   │       └── <OBS_ID_N>              # All tiled images a separated by observation ID
+│   └── HPX_TILE_OUTPUT_DIR             # Complete tiles
+└── ...
+```
+
 ## Configuration
 
 Current recommended content of the `params.yaml` file
