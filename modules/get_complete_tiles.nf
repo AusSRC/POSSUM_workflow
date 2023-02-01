@@ -47,6 +47,10 @@ process find_complete {
                 tileHPXFileMap[tileId] = files
             }
         }
+
+        if (tileIds.size() == 0) {
+            println "ERROR: No HPX tiles have all constituent components. Exiting nicely :)"
+        }
 }
 
 // ----------------------------------------------------------------------------------------

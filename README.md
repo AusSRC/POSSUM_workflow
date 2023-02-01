@@ -86,6 +86,15 @@ For processing MFS images (using the `mfs.nf` pipeline) only a subset of these p
 
 **NOTE**: We set `BEAMCON_NTASKS = 1` to use only one node for beamcon for the MFS image (do not need to run this in parallel).
 
+Once the data have been post-processed (either using the MFS or 3D pipelines) they are ready for mosaicking. The mosaicking step is executed manually. The user is therefore able to choose when to generate complete tiles with the tile components that have been created. The parameters required for this step include the `WORKDIR` (where all files are stored) and the `HPX_TILE_MAP` which describes the contributing observations for a given HPX tile.
+
+```
+{
+  "WORKDIR": "/mnt/shared/possum/runs/mfs",
+  "HPX_TILE_MAP": "/mnt/shared/possum/config/EMU-PILOT1-BAND1_SINGLE.csv"
+}
+```
+
 ### Splitting
 
 We use the [CASA imregrid](https://casadocs.readthedocs.io/en/v6.2.0/_modules/casatasks/analysis/imregrid.html) method to do tiling and reprojection onto a HPX grid. CASA has not been written to allow us to parallelise the tiling and reprojection over a number of nodes, and the size of our worker nodes is not sufficient to store entire cubes in memory (160 GB for band 1 images). We therefore need to split the cubes by frequency, run our program, then join at the end.

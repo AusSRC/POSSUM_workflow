@@ -23,7 +23,7 @@ workflow {
         )
         rename_tiles(
             mosaicking.out.tile_id,
-            mosaicking.out.image_cube,
-            mosaicking.out.weights_cube
+            mosaicking.out.mosaic,
+            mosaicking.out.mosaic_weights
         )
 }

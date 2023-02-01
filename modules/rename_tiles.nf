@@ -21,10 +21,10 @@ process generate_tile_name {
         """
         python3 -u /app/rename_tiles.py \
             -i $image_cube \
-            -pf ${params.TILE_PREFIX} \
+            -pf ${params.HPX_TILE_PREFIX} \
             -c ${params.CENTRAL_FREQUENCY} \
             -id $tile_id \
-            -v ${params.VERSION_NUMBER}
+            -v ${params.TILE_NAME_VERSION_NUMBER}
         """
 }
 
@@ -59,9 +59,9 @@ process update_image_weights_name {
 
 workflow rename_tiles {
     take:
+        tile_id
         image_cube
         weights_cube
-        tile_id
 
     main:
         generate_tile_name(image_cube, tile_id)
