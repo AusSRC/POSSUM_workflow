@@ -1,4 +1,4 @@
-<h1 align="center"><a>POSSUM workflows</a></h1>
+<h1 align="center"><a>POSSUM pipelines</a></h1>
 
 [AusSRC](https://aussrc.org) contribution to the POSSUM data pre-processing pipelines. The pre-processing of POSSUM data involves
 
@@ -86,12 +86,15 @@ For processing MFS images (using the `mfs.nf` pipeline) only a subset of these p
 
 **NOTE**: We set `BEAMCON_NTASKS = 1` to use only one node for beamcon for the MFS image (do not need to run this in parallel).
 
-Once the data have been post-processed (either using the MFS or 3D pipelines) they are ready for mosaicking. The mosaicking step is executed manually. The user is therefore able to choose when to generate complete tiles with the tile components that have been created. The parameters required for this step include the `WORKDIR` (where all files are stored) and the `HPX_TILE_MAP` which describes the contributing observations for a given HPX tile.
+Once the data have been post-processed (either using the MFS or 3D pipelines) they are ready for mosaicking. The mosaicking step is executed manually. The user is therefore able to choose when to generate complete tiles with the tile components that have been created. The parameters required for this step include the `WORKDIR` (where all files are stored) and the `HPX_TILE_MAP` which describes the contributing observations for a given HPX tile. Other parameters dictate the output filename of the tiles.
 
 ```
 {
   "WORKDIR": "/mnt/shared/possum/runs/mfs",
-  "HPX_TILE_MAP": "/mnt/shared/possum/config/EMU-PILOT1-BAND1_SINGLE.csv"
+  "HPX_TILE_MAP": "/mnt/shared/possum/config/EMU-PILOT1-BAND2_SINGLE.csv",
+  "HPX_TILE_PREFIX": "PSM",
+  "CENTRAL_FREQUENCY": "944MHz",
+  "TILE_NAME_VERSION_NUMBER": "v1.0"
 }
 ```
 
