@@ -47,13 +47,10 @@ process split_cube {
 
     script:
         """
-        export CASADATA=${params.CASADATA}/casadata
-        export PYTHONPATH='\$PYTHONPATH:${params.CASADATA}'
-
-        python3 -u /app/split_cube.py \
-            -i "$image_cube" \
-            -o "${params.WORKDIR}/${params.SBID}/${params.SPLIT_CUBE_SUBDIR}" \
-            -n ${params.NSPLIT}
+        python3 -u /app/fits_split.py \
+            --input "$image_cube" \
+            --output "${params.WORKDIR}/${params.SBID}/${params.SPLIT_CUBE_SUBDIR}/$stokes" \
+            --splits ${params.NSPLIT}
         """
 }
 
@@ -62,13 +59,14 @@ process get_split_cubes {
 
     input:
         val files_str
+        val stokes
 
     output:
         val subcubes, emit: subcubes
 
     exec:
-        filenames = files_str.split(',')
-        subcubes = filenames.collect{ it = file("${params.WORKDIR}/${params.SBID}/${params.SPLIT_CUBE_SUBDIR}/$it") }
+        def pattern = ~/.*fits$/
+        subcubes = new File("${params.WORKDIR}/${params.SBID}/${params.SPLIT_CUBE_SUBDIR}/$stokes").listFiles((FileFilter) { it.isFile() && it.getName().matches(pattern) }).collect{it.getAbsolutePath()}
 }
 
 // This is required for the beamcon "robust" method.
@@ -182,7 +180,7 @@ process join_split_hpx_tiles {
     script:
         files = file("${params.WORKDIR}/${params.TILE_COMPONENT_OUTPUT_DIR}/$stokes/$obs_id/*${obs_id}-${pixel_id}*.fits")
         file_string = files.join(' ')
-        hpx_tile = file("${params.WORKDIR}/${params.TILE_COMPONENT_OUTPUT_DIR}/$stokes/$obs_id/${params.HPX_TILE_PREFIX}.${obs_id}.${pixel_id}.${stokes}.fits")
+        hpx_tile = file("${params.WORKDIR}/${params.TILE_COMPONENT_OUTPUT_DIR}/$stokes/$obs_id/hpx/${params.HPX_TILE_PREFIX}.${obs_id}.${pixel_id}.${stokes}.fits")
 
         """
         python3 -u /app/join_subcubes.py \
@@ -205,7 +203,7 @@ workflow split_casa_tiling {
 
     main:
         split_cube(image_cube, stokes)
-        get_split_cubes(split_cube.out.files_str)
+        get_split_cubes(split_cube.out.files_str, stokes)
         run_hpx_tiling(
             obs_id,
             get_split_cubes.out.subcubes.flatten(),

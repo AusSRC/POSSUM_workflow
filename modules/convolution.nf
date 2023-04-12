@@ -21,7 +21,6 @@ process split_cube {
         # Make working directory
         [ ! -d ${params.WORKDIR}/${params.SBID}/${params.ZERO_SPLIT_CUBE_SUBDIR} ] && mkdir -p ${params.WORKDIR}/${params.SBID}/${params.ZERO_SPLIT_CUBE_SUBDIR}
 
-        export CASADATA=${params.CASADATA}/casadata
         export PYTHONPATH='\$PYTHONPATH:${params.CASADATA}'
 
         python3 -u /app/split_cube.py \
@@ -178,7 +177,7 @@ process copy_beamlog {
     script:
         def cube = file(image_cube)
         def beamlog_src = file("${evaluation_files}/SpectralCube_BeamLogs/beamlog*.i.*beam00.txt").first()
-        def beamlog_dest = "${cube.getParent()}/beamlog.${cube.getBaseName()}.zeros.txt"
+        def beamlog_dest = "${cube.getParent()}/beamlog.${cube.getBaseName()}.txt"
         beamlog = file(beamlog_dest)
 
     if (!beamlog.exists())
@@ -195,7 +194,6 @@ process copy_beamlog {
 }
 
 process beamcon_3D {
-    containerOptions = "${params.BEAMCON_CLUSTER_OPTIONS}"
 
     input:
         val image_cube
@@ -211,16 +209,17 @@ process beamcon_3D {
         """
         #!/bin/bash
 
-        export SINGULARITY_TMPDIR=${params.SINGULARITY_TMPDIR}
-        export SLURM_NTASKS=${params.BEAMCON_NTASKS}
+        export SLURM_NTASKS=72
 
-	    srun -n ${params.BEAMCON_NTASKS} singularity exec --bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT} \
+	    srun -N 12 --ntasks-per-node=6 singularity exec --bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT} \
             ${container} \
             beamcon_3D ${image_cube} \
             --mode total \
+            --conv_mode robust \
             --suffix ${params.BEAMCON_3D_SUFFIX} \
             --bmaj ${params.BMAJ} --bmin ${params.BMIN} --bpa ${params.BPA} \
-            -v
+            -vvv
+
         """
 }
 
@@ -284,10 +283,10 @@ workflow conv3d {
 
     main:
         pull_racstools_image()
-        nan_to_zero_large(cube)
+        //nan_to_zero_large(cube)
         extract_beamlog(evaluation_files)
         copy_beamlog(cube, evaluation_files, extract_beamlog.out.stdout)
-        beamcon_3D(nan_to_zero_large.out.image_cube_zeros, copy_beamlog.out.beamlog, pull_racstools_image.out.container)
+        beamcon_3D(cube, copy_beamlog.out.beamlog, pull_racstools_image.out.container)
         get_cube_conv(cube, "${params.BEAMCON_3D_SUFFIX}", beamcon_3D.out.stdout)
 
     emit:

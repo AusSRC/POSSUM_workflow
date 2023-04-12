@@ -106,6 +106,7 @@ process frion_correct {
         #!/bin/bash
 
         frion_correct \
+            -L \
             -o $q_cube $u_cube $predict_file \
             ${params.WORKDIR}/${params.SBID}/${params.FRION_Q_CUBE_FILENAME} \
             ${params.WORKDIR}/${params.SBID}/${params.FRION_U_CUBE_FILENAME}
