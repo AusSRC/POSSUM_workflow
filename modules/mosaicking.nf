@@ -40,6 +40,7 @@ process get_files {
     output:
         val image_cubes, emit: image_cubes
         val weights_cubes, emit: weights_cubes
+        val tile_id, emit: tile_id
 
     exec:
         image_cubes = "[${image_cube_map[tile_id].join(',').replace('.fits', '')}]"
@@ -58,6 +59,7 @@ process update_linmos_config {
         val stokes
 
     output:
+        val tile_id, emit: tile_id
         val "${params.WORKDIR}/${params.HPX_TILE_OUTPUT_DIR}/${params.LINMOS_CONFIG_SUBDIR}/${params.HPX_TILE_PREFIX}.${tile_id}.${stokes}.linmos.config", emit: linmos_config
 
     script:
@@ -88,7 +90,7 @@ process linmos {
         """
         #!/bin/bash
 
-        mpiexec -np 1 singularity exec \
+        srun -n 1 singularity exec \
             --bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT} \
             $container \
             linmos-mpi -c $linmos_config
@@ -109,8 +111,8 @@ workflow mosaicking {
     main:
         linmos_setup()
         get_files(tile_id, image_cube_map, weights_cube_map, linmos_setup.out.stdout)
-        update_linmos_config(tile_id, get_files.out.image_cubes, get_files.out.weights_cubes, stokes)
-        linmos(tile_id, stokes, update_linmos_config.out.linmos_config, linmos_setup.out.container)
+        update_linmos_config(get_files.out.tile_id, get_files.out.image_cubes, get_files.out.weights_cubes, stokes)
+        linmos(update_linmos_config.out.tile_id, stokes, update_linmos_config.out.linmos_config, linmos_setup.out.container)
 
     emit:
         tile_id

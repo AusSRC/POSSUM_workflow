@@ -28,8 +28,9 @@ process find_complete {
         for (item in tileObsIdMap) {
             tileId = item.key
             files = []
+
             for (obsId in item.value) {
-                search = "${params.WORKDIR}/${params.TILE_COMPONENT_OUTPUT_DIR}/$stokes/$obsId/*$tileId*"
+                search = "${params.WORKDIR}/${params.TILE_COMPONENT_OUTPUT_DIR}/$stokes/$obsId/hpx/*$tileId*"
                 matchFile = file(search)
 
                 // Add to map if file exists and there is only one
