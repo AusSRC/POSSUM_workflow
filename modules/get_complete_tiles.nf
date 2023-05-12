@@ -28,24 +28,43 @@ process find_complete {
         for (item in tileObsIdMap) {
             tileId = item.key
             files = []
+            weights = []
 
             for (obsId in item.value) {
-                search = "${params.WORKDIR}/${params.TILE_COMPONENT_OUTPUT_DIR}/$stokes/$obsId/hpx/*$tileId*"
-                matchFile = file(search)
+                search_stokes = "${params.WORKDIR}/${params.TILE_COMPONENT_OUTPUT_DIR}/$stokes/$obsId/hpx/*$tileId*"
+                match = file(search_stokes)
 
-                // Add to map if file exists and there is only one
-                if (matchFile.size() == 1) {
-                    files.add(matchFile.first())
+                if (match.size() == 0) {
+                    println "No Match: " + obsId + " " + tileId
+                    continue
                 }
-                if (matchFile.size() > 1) {
+                // Add to map if file exists and there is only one
+                else if (match.size() == 1) {
+                    files.add(match.first())
+                
+                    search_weights = "${params.WORKDIR}/${params.TILE_COMPONENT_OUTPUT_DIR}/w/$obsId/hpx/*$tileId*"
+                    match_weights = file(search_weights)
+                    if (match_weights.size() == 1) {
+                        weights.add(match_weights.first())
+                    }
+                    else if (match_weights.size() == 0) {
+                        throw new Exception("No weight can be found for $tileId")
+                    }
+                    else if (match_weights.size() > 1) {
+                        throw new Exception("More than one wight file found for HPX tile id $tileId")
+                    }
+
+                }
+                else if (match.size() > 1) {
                     throw new Exception("More than one file found for HPX tile id $tileId")
                 }
+
             }
 
             // Completed tiles (all components available) only
-            if (files.size() == item.value.size()) {
+            if (files.size() > 0) {
                 tileIds.add(tileId)
-                tileHPXFileMap[tileId] = files
+                tileHPXFileMap[tileId] = [files, weights]
             }
         }
 

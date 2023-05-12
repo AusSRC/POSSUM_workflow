@@ -243,24 +243,6 @@ process get_cube_conv {
 // Workflow
 // ----------------------------------------------------------------------------------------
 
-workflow nan_to_zero_large {
-    take:
-        image_cube
-
-    main:
-        split_cube(image_cube)
-        split_cube.out.files_str.view()
-        get_split_cubes(split_cube.out.files_str)
-        get_split_cubes.out.subcubes.view()
-        nan_to_zero(get_split_cubes.out.subcubes.flatten())
-        nan_to_zero.out.image_cube_zeros.view()
-        join_split_cubes(image_cube, nan_to_zero.out.image_cube_zeros.collect())
-        join_split_cubes.out.output_cube.view()
-
-    emit:
-        image_cube_zeros = join_split_cubes.out.output_cube
-}
-
 workflow conv2d {
     take:
         image_cube
@@ -283,7 +265,6 @@ workflow conv3d {
 
     main:
         pull_racstools_image()
-        //nan_to_zero_large(cube)
         extract_beamlog(evaluation_files)
         copy_beamlog(cube, evaluation_files, extract_beamlog.out.stdout)
         beamcon_3D(cube, copy_beamlog.out.beamlog, pull_racstools_image.out.container)

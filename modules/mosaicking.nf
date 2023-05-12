@@ -34,7 +34,6 @@ process get_files {
     input:
         val tile_id
         val image_cube_map
-        val weights_cube_map
         val check
 
     output:
@@ -43,8 +42,8 @@ process get_files {
         val tile_id, emit: tile_id
 
     exec:
-        image_cubes = "[${image_cube_map[tile_id].join(',').replace('.fits', '')}]"
-        weights_cubes = "[${weights_cube_map[tile_id].join(',').replace('.fits', '')}]"
+        image_cubes = "[${image_cube_map[tile_id][0].join(',').replace('.fits', '')}]"
+        weights_cubes = "[${image_cube_map[tile_id][1].join(',').replace('.fits', '')}]"
 }
 
 // Generate configuration
@@ -97,6 +96,59 @@ process linmos {
         """
 }
 
+
+process generate_tile_name {
+    debug true
+    container = params.HPX_TILING_IMAGE
+    containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
+
+    input:
+        val image_cube
+        val tile_id
+
+    output:
+        stdout emit: filename
+
+    script:
+        """
+        echo $image_cube $tile_id
+
+        python3 -u /app/rename_tiles.py \
+            -i $image_cube \
+            -pf ${params.HPX_TILE_PREFIX} \
+            -c ${params.CENTRAL_FREQUENCY} \
+            -id $tile_id \
+            -v ${params.TILE_NAME_VERSION_NUMBER}
+        """
+}
+
+process update_image_weights_name {
+    debug true
+    executor = 'local'
+
+    input:
+        val filename
+        val image_cube
+        val weights_cube
+
+    output:
+        val output_image_cube, emit: output_image_cube
+        val output_weights_cube, emit: output_weights_cube
+
+    script:
+        def path = file(image_cube).getParent()
+        output_image_cube = "${path}/${filename}"
+        output_weights_cube = "${path}/weights.${filename}"
+
+        """
+        #!/bin/bash
+
+        mv $image_cube $output_image_cube
+        mv $weights_cube $output_weights_cube
+        """
+}
+
+
 // ----------------------------------------------------------------------------------------
 // Workflow
 // ----------------------------------------------------------------------------------------
@@ -105,19 +157,26 @@ workflow mosaicking {
     take:
         tile_id
         image_cube_map
-        weights_cube_map
         stokes
 
     main:
         linmos_setup()
-        get_files(tile_id, image_cube_map, weights_cube_map, linmos_setup.out.stdout)
+        get_files(tile_id, image_cube_map, linmos_setup.out.stdout)
         update_linmos_config(get_files.out.tile_id, get_files.out.image_cubes, get_files.out.weights_cubes, stokes)
         linmos(update_linmos_config.out.tile_id, stokes, update_linmos_config.out.linmos_config, linmos_setup.out.container)
+        //generate_tile_name(linmos.out.mosaic, update_linmos_config.out.tile_id)
+        //update_image_weights_name(
+        //    generate_tile_name.out.filename,
+        //    linmos.out.mosaic,
+        //    linmos.out.mosaic_weights
+        //)
+        
+        //output_test(tile_id, update_linmos_config.out.tile_id)
 
-    emit:
-        tile_id
-        mosaic = linmos.out.mosaic
-        mosaic_weights = linmos.out.mosaic_weights
+    //emit:
+        //tile_id = update_linmos_config.out.tile_id
+        //mosaic = linmos.out.mosaic
+        //mosaic_weights = linmos.out.mosaic_weights
 }
 
 // ----------------------------------------------------------------------------------------
