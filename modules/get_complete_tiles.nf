@@ -12,6 +12,7 @@ process find_complete {
     input:
         val tileMap
         val stokes
+        val mfs
 
     output:
         val tileIds, emit: tileIds
@@ -31,8 +32,15 @@ process find_complete {
             weights = []
 
             for (obsId in item.value) {
-                search_stokes = "${params.WORKDIR}/${params.TILE_COMPONENT_OUTPUT_DIR}/$stokes/$obsId/hpx/*$tileId*"
+                if (mfs) {
+                    search_stokes = "${params.WORKDIR}/${params.TILE_COMPONENT_OUTPUT_DIR}/$stokes/$obsId/hpx/image.i.*$tileId*"
+                }
+                else {
+                    search_stokes = "${params.WORKDIR}/${params.TILE_COMPONENT_OUTPUT_DIR}/$stokes/$obsId/hpx/*$tileId*"
+                }
+
                 match = file(search_stokes)
+                //System.out.println(match)
 
                 if (match.size() == 0) {
                     println "No Match: " + obsId + " " + tileId
@@ -42,8 +50,15 @@ process find_complete {
                 else if (match.size() == 1) {
                     files.add(match.first())
                 
-                    search_weights = "${params.WORKDIR}/${params.TILE_COMPONENT_OUTPUT_DIR}/w/$obsId/hpx/*$tileId*"
+                    if (mfs) {
+                        search_weights = "${params.WORKDIR}/${params.TILE_COMPONENT_OUTPUT_DIR}/w/$obsId/weights.i.*$tileId*"
+                    }
+                    else {
+                        search_weights = "${params.WORKDIR}/${params.TILE_COMPONENT_OUTPUT_DIR}/w/$obsId/hpx/*$tileId*"
+                    }
+
                     match_weights = file(search_weights)
+                    //System.out.println(search_weights)
                     if (match_weights.size() == 1) {
                         weights.add(match_weights.first())
                     }
@@ -81,9 +96,10 @@ workflow get_complete_tiles {
     take:
         tileMap
         stokes
+        mfs
 
     main:
-        find_complete(tileMap, stokes)
+        find_complete(tileMap, stokes, mfs)
 
     emit:
         tile_ids = find_complete.out.tileIds

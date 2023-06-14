@@ -119,8 +119,6 @@ process pull_racstools_image {
         """
 }
 process beamcon_2D {
-    containerOptions = "${params.BEAMCON_CLUSTER_OPTIONS}"
-
     input:
         val image
         val container
@@ -135,9 +133,9 @@ process beamcon_2D {
         #!/bin/bash
 
         export SINGULARITY_TMPDIR=${params.SINGULARITY_TMPDIR}
-        export SLURM_NTASKS=${params.BEAMCON_NTASKS}
+        export SLURM_NTASKS=${params.BEAMCON_NTASKS_MFS}
 
-	    srun -n ${params.BEAMCON_NTASKS} singularity exec --bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT} \
+	    srun -n ${params.BEAMCON_NTASKS_MFS} singularity exec --bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT} \
             ${container} \
             beamcon_2D ${image} \
             --bmaj ${params.BMAJ} --bmin ${params.BMIN} --bpa ${params.BPA} \
