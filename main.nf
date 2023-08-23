@@ -17,19 +17,19 @@ include {
     split_tiling as tile_w;
 } from './modules/tiling'
 
+include { download_casda } from "./modules/casda.nf"
+
+
 workflow {
     sbid = "${params.SBID}"
-    i_cube = "${params.I_CUBE}"
-    q_cube = "${params.Q_CUBE}"
-    u_cube = "${params.U_CUBE}"
-    weights = "${params.WEIGHTS_CUBE}"
 
     main:
-        get_evaluation_files(sbid)
+        download_casda(sbid)
+        get_evaluation_files(download_casda.out.sbid)
 
-        conv_i(i_cube, get_evaluation_files.out.evaluation_files, "i")
-        conv_q(q_cube, get_evaluation_files.out.evaluation_files, "q")
-        conv_u(u_cube, get_evaluation_files.out.evaluation_files, "u")
+        conv_i(download_casda.out.i, get_evaluation_files.out.evaluation_files, "i")
+        conv_q(download_casda.out.q, get_evaluation_files.out.evaluation_files, "q")
+        conv_u(download_casda.out.u, get_evaluation_files.out.evaluation_files, "u")
 
         // Ionospheric correction
         ionospheric_correction(conv_q.out.cube_conv, conv_u.out.cube_conv)
@@ -41,5 +41,5 @@ workflow {
         tile_i(sbid, hpx_tile_map.out.obs_id, conv_i.out.cube_conv, hpx_tile_map.out.tile_map, 'i')
         tile_q(sbid, hpx_tile_map.out.obs_id, ionospheric_correction.out.q_cube_corr, hpx_tile_map.out.tile_map, 'q')
         tile_u(sbid, hpx_tile_map.out.obs_id, ionospheric_correction.out.u_cube_corr, hpx_tile_map.out.tile_map, 'u')
-        tile_w(sbid, hpx_tile_map.out.obs_id, weights, hpx_tile_map.out.tile_map, 'w')
+        tile_w(sbid, hpx_tile_map.out.obs_id, download_casda.out.weights, hpx_tile_map.out.tile_map, 'w')
 }

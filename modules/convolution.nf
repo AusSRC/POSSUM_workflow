@@ -7,6 +7,7 @@ nextflow.enable.dsl = 2
 // ----------------------------------------------------------------------------------------
 
 process split_cube {
+    executor = "local"
     container = params.HPX_TILING_IMAGE
     containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
 
@@ -77,6 +78,7 @@ process nan_to_zero {
 }
 
 process join_split_cubes {
+    executor = "local"
     container = params.HPX_TILING_IMAGE
     containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
 
@@ -103,6 +105,8 @@ process join_split_cubes {
 }
 
 process pull_racstools_image {
+    executor = "local"
+
     output:
         stdout emit: stdout
         val container, emit: container
@@ -144,6 +148,7 @@ process beamcon_2D {
 }
 
 process extract_beamlog {
+    executor = "local"
     container = params.METADATA_IMAGE
     containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
 
@@ -164,6 +169,7 @@ process extract_beamlog {
 
 process copy_beamlog {
     executor = "local"
+
     input:
         val image_cube
         val evaluation_files
@@ -192,7 +198,6 @@ process copy_beamlog {
 }
 
 process beamcon_3D {
-
     input:
         val image_cube
         val beamlog
@@ -207,9 +212,9 @@ process beamcon_3D {
         """
         #!/bin/bash
 
-        export SLURM_NTASKS=72
+        export SLURM_NTASKS=48
 
-	    srun -N 12 --ntasks-per-node=6 singularity exec --bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT} \
+	    srun -N 12 --ntasks-per-node=4 singularity exec --bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT} \
             ${container} \
             beamcon_3D ${image_cube} \
             --mode total \

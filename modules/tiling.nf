@@ -7,6 +7,8 @@ nextflow.enable.dsl = 2
 // ----------------------------------------------------------------------------------------
 
 process check {
+    executor = "local"
+
     input:
         val sbid
         val image_cube
@@ -186,6 +188,7 @@ process join_split_hpx_tiles {
         python3 -u /app/join_subcubes.py \
             -f $file_string \
             -o $hpx_tile \
+            -a 0 \
             --overwrite
         """
 }
