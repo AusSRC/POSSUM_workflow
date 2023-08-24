@@ -12,27 +12,29 @@ process download {
 
     input:
         val sbid
+        val project
+        val manifest
 
     output:
-        val "${params.WORKDIR}/$sbid/${sbid}.json", emit: manifest
+        val "$manifest", emit: manifest
 
     script:
         """
         #!/bin/bash
-        if [ ! -f "${params.WORKDIR}/$sbid/${sbid}.json" ]; then
+        if [ ! -f "$manifest" ]; then
             python3 -u /app/casda_download.py \
                 -s $sbid \
                 -o ${params.WORKDIR}/$sbid \
                 -c ${params.CASDA_CREDENTIALS} \
-                -m ${params.WORKDIR}/$sbid/${sbid}.json \
-                -p POSSUM
+                -m $manifest \
+                -p $project
         fi
         """
 }
 
 import groovy.json.JsonSlurper
 
-process parse_manifest {
+process parse_possum_manifest {
     executor = 'local'
 
     input:
@@ -69,13 +71,42 @@ process parse_manifest {
 }
 
 
-workflow download_casda {
+process parse_emu_manifest {
+    executor = 'local'
+
+    input:
+        val manifest
+
+    output:
+        val i_file, emit: i_file
+        val weights_file, emit: weights_file
+
+    exec:
+        i_file = null
+        weights_file = null
+
+        def inputFile = new File("$manifest")
+        def InputJSON = new JsonSlurper().parseText(inputFile.text)
+        InputJSON.each {
+            if (it.matches('(.*)image.i.(.*).cont.taylor.0.restored.conv.fits')) {
+                i_file = it
+            }
+            else if (it.matches('(.*)weights.i.(.*).cont.taylor.0.(.*)')) {
+                weights_file = it
+            }
+        }
+}
+
+
+workflow download_possum {
     take:
         sbid
+        project
+        manifest
 
     main:
-        download(sbid)
-        parse_manifest(download.out.manifest)
+        download(sbid, project, manifest)
+        parse_possum_manifest(download.out.manifest)
 
     emit:
         i = parse_manifest.out.i_file

@@ -10,15 +10,21 @@ include {
     tiling as tile_weights;
 } from './modules/tiling'
 
+include {
+    download;
+    parse_emu_manifest;
+} from "./modules/casda.nf"
+
+
 workflow {
     sbid = "${params.SBID}"
-    i_cube = "${params.I_CUBE}"
-    weights = "${params.WEIGHTS_CUBE}"
 
     main:
+        download(sbid, "EMU", "${params.WORKDIR}/$sbid/mfs/${sbid}.json")
+        parse_emu_manifest(download.out.manifest)
         get_evaluation_files(sbid)
-        conv2d(i_cube, "i")
+        conv2d(parse_emu_manifest.out.i_file, "i")
         hpx_tile_map(sbid, conv2d.out.cube_conv, get_evaluation_files.out.evaluation_files)
         tile_image(sbid, hpx_tile_map.out.obs_id, conv2d.out.cube_conv, hpx_tile_map.out.tile_map, 'i')
-        tile_weights(sbid, hpx_tile_map.out.obs_id, weights, hpx_tile_map.out.tile_map, 'w')
+        tile_weights(sbid, hpx_tile_map.out.obs_id, parse_emu_manifest.out.weights_file, hpx_tile_map.out.tile_map, 'w')
 }

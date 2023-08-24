@@ -17,14 +17,14 @@ include {
     split_tiling as tile_w;
 } from './modules/tiling'
 
-include { download_casda } from "./modules/casda.nf"
+include { download_possum } from "./modules/casda.nf"
 
 
 workflow {
     sbid = "${params.SBID}"
 
     main:
-        download_casda(sbid)
+        download_possum(sbid, "POSSUM", "${params.WORKDIR}/$sbid/${sbid}.json")
         get_evaluation_files(download_casda.out.sbid)
 
         conv_i(download_casda.out.i, get_evaluation_files.out.evaluation_files, "i")
