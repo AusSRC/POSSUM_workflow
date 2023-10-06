@@ -28,7 +28,7 @@ workflow {
     main:
         download(sbid, "POSSUM", "${params.WORKDIR}/$sbid/${sbid}.json")
         parse_possum_manifest(download.out.manifest)
-        get_evaluation_files(download.out.sbid)
+        get_evaluation_files(sbid)
 
         conv_i(parse_possum_manifest.out.i_file, get_evaluation_files.out.evaluation_files, "i")
         conv_q(parse_possum_manifest.out.q_file, get_evaluation_files.out.evaluation_files, "q")
