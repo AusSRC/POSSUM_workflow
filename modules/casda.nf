@@ -109,9 +109,9 @@ workflow download_possum {
         parse_possum_manifest(download.out.manifest)
 
     emit:
-        i = parse_manifest.out.i_file
-        q = parse_manifest.out.q_file
-        u = parse_manifest.out.u_file
-        weights = parse_manifest.out.weights_file
+        i = parse_possum_manifest.out.i_file
+        q = parse_possum_manifest.out.q_file
+        u = parse_possum_manifest.out.u_file
+        weights = parse_possum_manifest.out.weights_file
         sbid = sbid
 }
