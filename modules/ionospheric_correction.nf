@@ -7,6 +7,8 @@ nextflow.enable.dsl = 2
 // ----------------------------------------------------------------------------------------
 
 process observation_start_time {
+    executor = 'local'
+
     container = params.METADATA_IMAGE
     containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
 
@@ -28,6 +30,8 @@ process observation_start_time {
 }
 
 process observation_end_time {
+    executor = 'local'
+
     container = params.METADATA_IMAGE
     containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
 

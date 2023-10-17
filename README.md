@@ -1,8 +1,8 @@
-<h1 align="center"><a>POSSUM pipelines</a></h1>
+# POSSUM pipelines
 
 [AusSRC](https://aussrc.org) contribution to the POSSUM data pre-processing pipelines. The pre-processing of POSSUM data involves
 
-* Convolution to a common beam (18 arcseconds) [https://github.com/AlecThomson/RACS-tools]
+* Convolution to a common beam (20 arcseconds) [https://github.com/AlecThomson/RACS-tools]
 * Ionospheric Faraday rotation correction (for Stokes Q and U) [https://github.com/CIRADA-Tools/FRion]
 * Tiling [https://github.com/Sebokolodi/SkyTiles]
 
@@ -12,21 +12,66 @@ Then, complete HPX tiles are mosaicked together and uploaded to [CADC](https://w
 * Pre-processing of spectral cube images (`main.nf`)
 * Mosaicking to complete tile images (`mosaic.nf`)
 
-## Run
+## Running Pipelines
 
-To run the pipeline you need to specify a main script, a parameter file (or provide a list of parameters as arguments) and a deployment. Currently we only support `setonix` or `carnaby` (AusSRC development cluster) as the deployments. A template parameter file will be provided further
+To run the pipeline you need to specify a main script, a parameter file (or provide a list of parameters as arguments) and a deployment. Currently we only support `setonix` as the deployments. A template parameter file will be provided further
 
-Example code for running these pipelines
-
-```
-nextflow run <FILE> -params-file <PARAMETER_FILE> -profile <DEPLOYMENT> -resume
-```
-
-or
+### Spectral cube images (`main.nf`)
 
 ```
-nextflow run https://github.com/AusSRC/POSSUM_workflow -r main -main-script <PIPELINE> -params-file <PARAMETER_FILE> -profile <DEPLOYMENT> -resume
+#!/bin/bash
+#SBATCH --account=<Pawsey account>
+#SBATCH --ntasks=1
+#SBATCH --ntasks-per-node=1
+#SBATCH --cpus-per-task=1
+#SBATCH --mem-per-cpu=32G
+#SBATCH --time=24:00:00
+
+module load singularity/3.11.4-mpi
+module load nextflow/23.04.3
+
+export MPICH_OFI_STARTUP_CONNECT=1
+export MPICH_OFI_VERBOSE=1
+
+export FI_CXI_DEFAULT_VNI=$(od -vAn -N4 -tu < /dev/urandom)
+
+nextflow run https://github.com/AusSRC/POSSUM_workflow -r main -main-script main.nf --SBID <SBID> -profile setonix
 ```
+
+Deploy
+
+```
+sbatch script.sh
+```
+
+### MFS images (`mfs.nf`)
+
+```
+#!/bin/bash
+#SBATCH --account=<Pawsey account>
+#SBATCH --ntasks=1
+#SBATCH --ntasks-per-node=1
+#SBATCH --cpus-per-task=1
+#SBATCH --mem-per-cpu=32G
+#SBATCH --time=24:00:00
+
+module load singularity/3.11.4-mpi
+module load nextflow/23.04.3
+
+export MPICH_OFI_STARTUP_CONNECT=1
+export MPICH_OFI_VERBOSE=1
+
+export FI_CXI_DEFAULT_VNI=$(od -vAn -N4 -tu < /dev/urandom)
+
+nextflow run https://github.com/AusSRC/POSSUM_workflow -r main -main-script mfs.nf --SBID <SBID> -profile setonix
+```
+
+Deploy
+
+```
+sbatch script.sh
+```
+
 
 ### File structure
 
@@ -35,88 +80,22 @@ This section describes how the output files are organised. All outputs are store
 ```
 .
 ├── ...
-├── WORKDIR                             # Parent directory specified in params.WORKDIR
-│   ├── <SBID_1>
-│   ├── <SBID_2>
-│   ├── ...
-│   ├── <SBID_N>                        # A sub-folder for each SBID containing observation metadata
-│   │   ├── evaluation_files            # Download evaluation files
-│   │   └── hpx_tile_map.csv            # Generated map for HPX pixels covered by image cube (map file)
-│   ├── TILE_COMPONENT_OUTPUT_DIR       # HPX tile components for each SBID are stored here
-│   │   ├── i
-│   │   ├── ...
-│   │   └── q                           # Subdirectory for each stokes parameter
-│   │       ├── <OBS_ID_1>
-│   │       ├── ...
-│   │       └── <OBS_ID_N>              # All tiled images a separated by observation ID
-│   └── HPX_TILE_OUTPUT_DIR             # Complete tiles
-└── ...
-```
+└── WORKDIR                                 # Parent directory specified in params.WORKDIR
+    ├── <SBID_1>
+    ├── <SBID_2>
+    ├── ...
+    ├── <SBID_N>                            # A sub-folder for each SBID containing observation metadata
+    │   ├── evaluation_files                # Download evaluation files
+    │   └── hpx_tile_map.csv                # Generated map for HPX pixels covered by image cube (map file)
+    └── TILE_COMPONENT_OUTPUT_DIR           # HPX tile components for each SBID are stored here
+        ├── i
+        ├── ...
+        └── q                               # Subdirectory for each stokes parameter
+            ├── <OBS_ID_1>
+            ├── ...
+            └── <OBS_ID_N>                  # All tiled images a separated by observation ID
+                └──HPX_TILE_OUTPUT_DIR      # Complete tiles
 
-### Slurm
-
-A example `sbatch` script is provided for running the pipeline on Setonix.
-
-```
-#!/bin/bash
-
-#SBATCH --partition=work
-#SBATCH --account=ja3
-#SBATCH --time=24:00:00
-#SBATCH --mem-per-cpu=128G
-#SBATCH --job-name=possum_pipeline_test
-
-module load singularity/3.8.6
-module load nextflow/22.04.3
-
-nextflow run https://github.com/AusSRC/POSSUM_workflow -r main -main-script main.nf \
-  -params-file /scratch/ja3/ashen/possum/pipeline/tests/10040.yaml \
-  -profile setonix -resume
-```
-
-## Configuration
-
-Current recommended content of the `params.yaml` file for running the `main.nf` pipeline
-
-```
-{
-  "RUN_NAME": "pipeline_test",
-  "WORKDIR": "/mnt/shared/home/ashen/POSSUM/runs",
-
-  "I_CUBE": "image.restored.i.SB10040.contcube_3chan.fits",
-  "Q_CUBE": "image.restored.q.SB10040.contcube_3chan.fits",
-  "U_CUBE": "image.restored.u.SB10040.contcube_3chan.fits",
-  "WEIGHTS_CUBE": "weights.restored.i.SB10040.contcube_3chan.fits",
-
-  "NSPLIT": "3",
-  "NAN_TO_ZERO_NSPLIT": "3"
-}
-```
-
-For processing MFS images (using the `mfs.nf` pipeline) only a subset of these parameters are required
-
-```
-{
-  "SBID": "44127",
-  "WORKDIR": "/mnt/shared/possum/runs/mfs",
-  "I_CUBE": "image.i.POSSUM_0101-72A_band2.SB44127.cont.taylor.0.restored.conv.fits",
-  "WEIGHTS_CUBE": "weights.i.POSSUM_0101-72A_band2.SB44127.cont.taylor.0.fits",
-  "BEAMCON_NTASKS": "1"
-}
-```
-
-**NOTE**: We set `BEAMCON_NTASKS = 1` to use only one node for beamcon for the MFS image (do not need to run this in parallel).
-
-Once the data have been post-processed (either using the MFS or 3D pipelines) they are ready for mosaicking. The mosaicking step is executed manually. The user is therefore able to choose when to generate complete tiles with the tile components that have been created. The parameters required for this step include the `WORKDIR` (where all files are stored) and the `HPX_TILE_MAP` which describes the contributing observations for a given HPX tile. Other parameters dictate the output filename of the tiles.
-
-```
-{
-  "WORKDIR": "/mnt/shared/possum/runs/mfs",
-  "HPX_TILE_MAP": "/mnt/shared/possum/config/EMU-PILOT1-BAND2_SINGLE.csv",
-  "HPX_TILE_PREFIX": "PSM",
-  "CENTRAL_FREQUENCY": "944MHz",
-  "TILE_NAME_VERSION_NUMBER": "v1.0"
-}
 ```
 
 ### Splitting

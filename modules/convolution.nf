@@ -122,6 +122,7 @@ process pull_racstools_image {
         exit 0
         """
 }
+
 process beamcon_2D {
     input:
         val image
@@ -163,7 +164,8 @@ process extract_beamlog {
         python3 /app/get_file_in_compressed_folder.py \
             -p $evaluation_files \
             -f calibration-metadata-processing-logs \
-            -k SpectralCube_BeamLogs/beamlog
+            -k SpectralCube_BeamLogs/beamlog \
+            -o $evaluation_files/SpectralCube_BeamLogs
         """
 }
 
@@ -198,6 +200,7 @@ process copy_beamlog {
 }
 
 process beamcon_3D {
+
     input:
         val image_cube
         val beamlog
@@ -212,9 +215,11 @@ process beamcon_3D {
         """
         #!/bin/bash
 
-        export SLURM_NTASKS=48
+        export MPICH_OFI_STARTUP_CONNECT=1
+        export MPICH_OFI_VERBOSE=1
+        export OMP_NUM_THREADS=1
 
-	    srun -N 12 --ntasks-per-node=4 singularity exec --bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT} \
+	    srun --export=ALL --mpi=pmi2 -n 36 singularity exec --bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT} \
             ${container} \
             beamcon_3D ${image_cube} \
             --mode total \

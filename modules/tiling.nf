@@ -37,6 +37,8 @@ process check {
 }
 
 process split_cube {
+    executor = 'local'
+
     container = params.HPX_TILING_IMAGE
     containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
 
@@ -73,6 +75,8 @@ process get_split_cubes {
 
 // This is required for the beamcon "robust" method.
 process nan_to_zero {
+    executor = 'local'
+    
     container = params.METADATA_IMAGE
     containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
 
@@ -113,7 +117,7 @@ process run_hpx_tiling {
         val stokes
 
     output:
-        stdout emit: stdout
+        val image_cube, emit: image_cube_out
 
     script:
         prefix = file(image_cube).getBaseName()
@@ -207,13 +211,11 @@ workflow split_casa_tiling {
     main:
         split_cube(image_cube, stokes)
         get_split_cubes(split_cube.out.files_str, stokes)
-        run_hpx_tiling(
-            obs_id,
-            get_split_cubes.out.subcubes.flatten(),
-            pixel_map,
-            stokes
-        )
-        get_unique_pixel_ids(run_hpx_tiling.out.stdout.collect(), obs_id, stokes)
+        run_hpx_tiling(obs_id,
+                       get_split_cubes.out.subcubes.flatten(),
+                       pixel_map,
+                       stokes)
+        get_unique_pixel_ids(run_hpx_tiling.out.image_cube_out.collect(), obs_id, stokes)
         join_split_hpx_tiles(get_unique_pixel_ids.out.pixel_id.flatten(), obs_id, stokes)
 
     emit:
@@ -247,7 +249,7 @@ workflow tiling {
     main:
         check(sbid, image_cube, stokes, tile_map)
         run_hpx_tiling(obs_id, image_cube, tile_map, stokes)
-        get_tiles(run_hpx_tiling.out.stdout, stokes)
+        get_tiles(run_hpx_tiling.out.image_cube_out, stokes)
 
     emit:
         tiles = get_tiles.out.tiles

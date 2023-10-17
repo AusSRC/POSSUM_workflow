@@ -7,6 +7,8 @@ nextflow.enable.dsl = 2
 // ----------------------------------------------------------------------------------------
 
 process check {
+    executor = 'local'
+
     input:
         val sbid
         val image_cube
@@ -60,6 +62,8 @@ process get_obs_id_from_footprint_file {
 }
 
 process get_footprint_file {
+    executor = 'local'
+
     container = params.METADATA_IMAGE
     containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
 
@@ -74,11 +78,14 @@ process get_footprint_file {
         python3 /app/get_file_in_compressed_folder.py \
             -p $evaluation_files \
             -f calibration-metadata-processing-logs \
-            -k metadata/footprintOutput
+            -k metadata/footprintOutput \
+            -o $evaluation_files/metadata
         """
 }
 
 process generate_tile_map {
+    executor = 'local'
+
     container = params.HPX_TILING_IMAGE
     containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
 
