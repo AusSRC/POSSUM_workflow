@@ -226,6 +226,7 @@ process beamcon_3D {
             --conv_mode robust \
             --suffix ${params.BEAMCON_3D_SUFFIX} \
             --bmaj ${params.BMAJ} --bmin ${params.BMIN} --bpa ${params.BPA} \
+            --cutoff ${params.CUTOFF} \
             -vvv
 
         """
