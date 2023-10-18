@@ -6,36 +6,6 @@ nextflow.enable.dsl = 2
 // Processes
 // ----------------------------------------------------------------------------------------
 
-process check {
-    executor = "local"
-
-    input:
-        val sbid
-        val image_cube
-        val stokes
-        val tile_map
-
-    output:
-        stdout emit: stdout
-
-    script:
-        """
-        #!/bin/bash
-
-        # Check important files
-        [ ! -f $image_cube ] && { echo "Image cube file does not exist"; exit 1; }
-        [ ! -f $tile_map ] && { echo "HPX tile map file does not exist"; exit 1; }
-        [ ! -f ${params.HPX_TILE_CONFIG} ] && { echo "HEALPIX tiling configuration file does not exist"; exit 1; }
-
-        # Check working directories
-        [ ! -d ${params.WORKDIR}/$sbid ] && mkdir -p ${params.WORKDIR}/$sbid
-        [ ! -d ${params.WORKDIR}/${params.TILE_COMPONENT_OUTPUT_DIR} ] && mkdir -p ${params.WORKDIR}/${params.TILE_COMPONENT_OUTPUT_DIR}
-        [ ! -d ${params.WORKDIR}/${params.TILE_COMPONENT_OUTPUT_DIR}/$stokes ] && mkdir -p ${params.WORKDIR}/${params.TILE_COMPONENT_OUTPUT_DIR}/$stokes
-
-        exit 0
-        """
-}
-
 process split_cube {
     executor = 'local'
 
@@ -107,6 +77,7 @@ process nan_to_zero {
 }
 
 process run_hpx_tiling {
+
     container = params.HPX_TILING_IMAGE
     containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
 
@@ -115,12 +86,19 @@ process run_hpx_tiling {
         val image_cube
         val pixel_map_csv
         val stokes
+        val type
 
     output:
         val image_cube, emit: image_cube_out
 
     script:
         prefix = file(image_cube).getBaseName()
+        if (type == 'mfs') {
+            output = "${params.WORKDIR}/${params.TILE_COMPONENT_OUTPUT_DIR}/$obs_id/mfs/$stokes"
+        }
+        else {
+            output = "${params.WORKDIR}/${params.SBID}/tiles/$obs_id/$stokes/"
+        }
 
         """
         export CASADATA=${params.CASADATA}/casadata
@@ -130,7 +108,7 @@ process run_hpx_tiling {
             -i "$obs_id" \
             -c "$image_cube" \
             -m "$pixel_map_csv" \
-            -o "${params.WORKDIR}/${params.TILE_COMPONENT_OUTPUT_DIR}/$stokes" \
+            -o "$output" \
             -t "${params.HPX_TILE_TEMPLATE}" \
             -p "$prefix"
         """
@@ -141,13 +119,14 @@ process get_tiles {
 
     input:
         val check
+        val obs_id
         val stokes
 
     output:
         val files, emit: files
 
     exec:
-        files = file("${params.WORKDIR}/${params.TILE_COMPONENT_OUTPUT_DIR}/$stokes/*.fits")
+        files = file("${params.WORKDIR}/${params.TILE_COMPONENT_OUTPUT_DIR}/$obs_id/$stokes/*.fits")
         """
         #!/bin/bash
         echo $check
@@ -166,7 +145,7 @@ process get_unique_pixel_ids {
         val pixel_id, emit: pixel_id
 
     exec:
-        pixel_id = file("${params.WORKDIR}/${params.TILE_COMPONENT_OUTPUT_DIR}/$stokes/$obs_id/*.fits")
+        pixel_id = file("${params.WORKDIR}/${params.SBID}/tiles/$obs_id/$stokes/*.fits")
             .collect{ path -> (path.baseName.split('-')[-1] =~ /\d+/).findAll().first() }
             .unique()
 }
@@ -184,9 +163,9 @@ process join_split_hpx_tiles {
         val hpx_tile, emit: hpx_tile
 
     script:
-        files = file("${params.WORKDIR}/${params.TILE_COMPONENT_OUTPUT_DIR}/$stokes/$obs_id/*${obs_id}-${pixel_id}*.fits")
+        files = file("${params.WORKDIR}/${params.SBID}/tiles/$obs_id/$stokes/*${obs_id}-${pixel_id}*.fits")
         file_string = files.join(' ')
-        hpx_tile = file("${params.WORKDIR}/${params.TILE_COMPONENT_OUTPUT_DIR}/$stokes/$obs_id/hpx/${params.HPX_TILE_PREFIX}.${obs_id}.${pixel_id}.${stokes}.fits")
+        hpx_tile = file("${params.WORKDIR}/${params.TILE_COMPONENT_OUTPUT_DIR}/$obs_id/survey/$stokes/${params.HPX_TILE_PREFIX}.${obs_id}.${pixel_id}.${stokes}.fits")
 
         """
         python3 -u /app/join_subcubes.py \
@@ -214,7 +193,8 @@ workflow split_casa_tiling {
         run_hpx_tiling(obs_id,
                        get_split_cubes.out.subcubes.flatten(),
                        pixel_map,
-                       stokes)
+                       stokes,
+                       "survey")
         get_unique_pixel_ids(run_hpx_tiling.out.image_cube_out.collect(), obs_id, stokes)
         join_split_hpx_tiles(get_unique_pixel_ids.out.pixel_id.flatten(), obs_id, stokes)
 
@@ -231,7 +211,6 @@ workflow split_tiling {
         stokes
 
     main:
-        check(sbid, image_cube, stokes, tile_map)
         split_casa_tiling(obs_id, image_cube, tile_map, stokes)
 
     emit:
@@ -247,9 +226,12 @@ workflow tiling {
         stokes
 
     main:
-        check(sbid, image_cube, stokes, tile_map)
-        run_hpx_tiling(obs_id, image_cube, tile_map, stokes)
-        get_tiles(run_hpx_tiling.out.image_cube_out, stokes)
+        run_hpx_tiling(obs_id, 
+                       image_cube, 
+                       tile_map, 
+                       stokes,
+                       'mfs')
+        get_tiles(run_hpx_tiling.out.image_cube_out, obs_id, stokes)
 
     emit:
         tiles = get_tiles.out.tiles
