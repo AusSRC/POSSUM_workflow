@@ -14,7 +14,15 @@ Then, complete HPX tiles are mosaicked together and uploaded to [CADC](https://w
 
 ## Running Pipelines
 
-To run the pipeline you need to specify a main script, a parameter file (or provide a list of parameters as arguments) and a deployment. Currently we only support `setonix` as the deployments. A template parameter file will be provided further
+To run the pipeline you need to specify a main script, a parameter file (or provide a list of parameters as arguments) and a deployment. Currently we only support `setonix` as the deployments.
+
+The pipeline needs access to a CASDA credentials file:
+
+```
+[CASDA]
+username = 
+password = 
+```
 
 ### Spectral cube images (`main.nf`)
 
@@ -35,7 +43,7 @@ export MPICH_OFI_VERBOSE=1
 
 export FI_CXI_DEFAULT_VNI=$(od -vAn -N4 -tu < /dev/urandom)
 
-nextflow run https://github.com/AusSRC/POSSUM_workflow -r main -main-script main.nf --SBID <SBID> -profile setonix
+nextflow run main.nf -profile setonix --CASDA_CREDENTIALS=<path to CASDA credentials> --SBID <SBID>
 ```
 
 Deploy
@@ -63,7 +71,7 @@ export MPICH_OFI_VERBOSE=1
 
 export FI_CXI_DEFAULT_VNI=$(od -vAn -N4 -tu < /dev/urandom)
 
-nextflow run https://github.com/AusSRC/POSSUM_workflow -r main -main-script mfs.nf --SBID <SBID> -profile setonix
+nextflow run mfs.nf -profile setonix --CASDA_CREDENTIALS=<path to CASDA credentials> --SBID <SBID>
 ```
 
 Deploy
@@ -80,21 +88,20 @@ This section describes how the output files are organised. All outputs are store
 ```
 .
 ├── ...
-└── WORKDIR                                 # Parent directory specified in params.WORKDIR
+└── WORKDIR                             # Parent directory specified in params.WORKDIR
     ├── <SBID_1>
     ├── <SBID_2>
     ├── ...
-    ├── <SBID_N>                            # A sub-folder for each SBID containing observation metadata
-    │   ├── evaluation_files                # Download evaluation files
-    │   └── hpx_tile_map.csv                # Generated map for HPX pixels covered by image cube (map file)
-    └── TILE_COMPONENT_OUTPUT_DIR           # HPX tile components for each SBID are stored here
-        ├── i
+    ├── <SBID_N>                        # A sub-folder for each SBID containing observation metadata
+    │   ├── evaluation_files            # Download evaluation files
+    │   └── hpx_tile_map.csv            # Generated map for HPX pixels covered by image cube (map file)
+    └── TILE_COMPONENT_OUTPUT_DIR       # HPX tile components for each SBID are stored here                 
+        ├── <OBS_ID_1>
         ├── ...
-        └── q                               # Subdirectory for each stokes parameter
-            ├── <OBS_ID_1>
+        └── <OBS_ID_N>                  # All tiled images a separated by observation ID
+            ├── i                       # Subdirectory for each stokes parameter
             ├── ...
-            └── <OBS_ID_N>                  # All tiled images a separated by observation ID
-                └──HPX_TILE_OUTPUT_DIR      # Complete tiles
+            └── q
 
 ```
 
