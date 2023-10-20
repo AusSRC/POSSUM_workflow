@@ -16,7 +16,7 @@ Then, complete HPX tiles are mosaicked together and uploaded to [CADC](https://w
 
 To run the pipeline you need to specify a main script, a parameter file (or provide a list of parameters as arguments) and a deployment. Currently we only support `setonix` as the deployments.
 
-The pipeline needs access to a CASDA credentials file:
+The pipeline needs access to a CASDA credentials file `casda.ini`:
 
 ```
 [CASDA]
