@@ -47,6 +47,12 @@ process download {
 
         python3 /app/download_evaluation_files.py \
             -s ${params.SBID} \
+            -p AS202 \
+            -o ${params.WORKDIR}/${params.SBID}/${params.EVALUATION_FILES_DIR} \
+            -c ${params.CASDA_CREDENTIALS}
+
+        python3 /app/download_evaluation_files.py \
+            -s ${params.SBID} \
             -p AS201 \
             -o ${params.WORKDIR}/${params.SBID}/${params.EVALUATION_FILES_DIR} \
             -c ${params.CASDA_CREDENTIALS}
