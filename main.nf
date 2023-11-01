@@ -18,8 +18,12 @@ include {
 } from './modules/tiling'
 
 include { download;
-          parse_possum_manifest;
+    parse_possum_manifest;
 } from "./modules/casda.nf"
+
+include {
+    objectstore_upload;
+} from './modules/objectstore'
 
 
 workflow {
@@ -45,4 +49,9 @@ workflow {
         tile_q(sbid, hpx_tile_map.out.obs_id, ionospheric_correction.out.q_cube_corr, hpx_tile_map.out.tile_map, 'q')
         tile_u(sbid, hpx_tile_map.out.obs_id, ionospheric_correction.out.u_cube_corr, hpx_tile_map.out.tile_map, 'u')
         tile_w(sbid, hpx_tile_map.out.obs_id, parse_possum_manifest.out.weights_file, hpx_tile_map.out.tile_map, 'w')
+
+        // upload cubes to Acacia
+        objectstore_upload(tile_i.out.combine(tile_q.out).combine(tile_u.out).combine(tile_w.out), 
+                           hpx_tile_map.out.obs_id, 
+                           "survey")
 }

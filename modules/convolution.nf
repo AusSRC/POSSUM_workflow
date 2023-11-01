@@ -45,38 +45,6 @@ process get_split_cubes {
         subcubes = filenames.collect{ it = file("${params.WORKDIR}/${params.SBID}/${params.ZERO_SPLIT_CUBE_SUBDIR}/$it") }
 }
 
-// This is required for the beamcon "robust" method.
-process nan_to_zero {
-    container = params.METADATA_IMAGE
-    containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
-
-    input:
-        val image_cube
-
-    output:
-        val image_cube_zeros, emit: image_cube_zeros
-
-    script:
-        def filename = file(image_cube)
-        // TODO: why does def not work here?
-        image_cube_zeros = "${filename.getParent()}/${filename.getBaseName()}.zeros.${filename.getExtension()}"
-
-        """
-        #!python3
-
-        import numpy as np
-        from astropy.io import fits
-
-        with fits.open("$image_cube", mode="readonly") as hdu:
-            header = hdu[0].header
-            data = np.nan_to_num(hdu[0].data)
-            header['HISTORY'] = 'Replace NaN with zero'
-        hdu = fits.PrimaryHDU(data=data, header=header)
-        hdul = fits.HDUList([hdu])
-        hdul.writeto("$image_cube_zeros", overwrite=True)
-        """
-}
-
 process join_split_cubes {
     executor = "local"
     container = params.HPX_TILING_IMAGE

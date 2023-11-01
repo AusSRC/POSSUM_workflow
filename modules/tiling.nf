@@ -114,25 +114,6 @@ process run_hpx_tiling {
         """
 }
 
-process get_tiles {
-    executor = 'local'
-
-    input:
-        val check
-        val obs_id
-        val stokes
-
-    output:
-        val files, emit: files
-
-    exec:
-        files = file("${params.WORKDIR}/${params.TILE_COMPONENT_OUTPUT_DIR}/$obs_id/$stokes/*.fits")
-        """
-        #!/bin/bash
-        echo $check
-        """
-}
-
 process get_unique_pixel_ids {
     executor = 'local'
 
@@ -161,6 +142,7 @@ process join_split_hpx_tiles {
 
     output:
         val hpx_tile, emit: hpx_tile
+        val true, emit: ready
 
     script:
         files = file("${params.WORKDIR}/${params.SBID}/tiles/$obs_id/$stokes/*${obs_id}-${pixel_id}*.fits")
@@ -172,6 +154,27 @@ process join_split_hpx_tiles {
             -f $file_string \
             -o $hpx_tile \
             -a 0 \
+            --overwrite
+        """
+}
+
+
+process repair_tiles {
+    container = params.METADATA_IMAGE
+    containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
+
+    input:
+        val ready
+        val obs_id
+        val stokes
+
+    output:
+        val true, emit: ready
+
+    script:
+        """
+        python3 /app/repair_incomplete_tiles.py \
+            "${params.WORKDIR}/${params.TILE_COMPONENT_OUTPUT_DIR}/$obs_id/survey/$stokes/" \
             --overwrite
         """
 }
@@ -197,9 +200,10 @@ workflow split_casa_tiling {
                        "survey")
         get_unique_pixel_ids(run_hpx_tiling.out.image_cube_out.collect(), obs_id, stokes)
         join_split_hpx_tiles(get_unique_pixel_ids.out.pixel_id.flatten(), obs_id, stokes)
+        repair_tiles(join_split_hpx_tiles.out.ready, obs_id, stokes)
 
     emit:
-        tiles = join_split_hpx_tiles.out.hpx_tile.collect()
+        ready = repair_tiles.out.ready
 }
 
 workflow split_tiling {
@@ -214,7 +218,7 @@ workflow split_tiling {
         split_casa_tiling(obs_id, image_cube, tile_map, stokes)
 
     emit:
-        tiles = split_casa_tiling.out.tiles
+        ready = split_casa_tiling.out.ready
 }
 
 workflow tiling {
@@ -231,10 +235,9 @@ workflow tiling {
                        tile_map, 
                        stokes,
                        'mfs')
-        get_tiles(run_hpx_tiling.out.image_cube_out, obs_id, stokes)
 
     emit:
-        tiles = get_tiles.out.tiles
+        ready = run_hpx_tiling.out.image_cube
 }
 
 // ----------------------------------------------------------------------------------------
