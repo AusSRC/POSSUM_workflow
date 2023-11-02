@@ -200,7 +200,7 @@ workflow split_casa_tiling {
                        "survey")
         get_unique_pixel_ids(run_hpx_tiling.out.image_cube_out.collect(), obs_id, stokes)
         join_split_hpx_tiles(get_unique_pixel_ids.out.pixel_id.flatten(), obs_id, stokes)
-        repair_tiles(join_split_hpx_tiles.out.ready, obs_id, stokes)
+        repair_tiles(join_split_hpx_tiles.out.ready.collect(), obs_id, stokes)
 
     emit:
         ready = repair_tiles.out.ready
