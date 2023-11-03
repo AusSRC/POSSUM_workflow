@@ -21,8 +21,6 @@ process split_cube {
 
     script:
         """
-        #!/bin/bash --login
-
         python3 -u /app/fits_split.py \
             --input "$image_cube" \
             --output "${params.WORKDIR}/${params.SBID}/${params.SPLIT_CUBE_SUBDIR}/$stokes" \
