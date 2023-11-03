@@ -179,7 +179,7 @@ process beamcon_3D {
         file = file(image_cube)
 
         """
-        #!/bin/bash
+        #!/bin/bash --login
 
         export MPICH_OFI_STARTUP_CONNECT=1
         export MPICH_OFI_VERBOSE=1
