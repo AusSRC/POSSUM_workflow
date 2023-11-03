@@ -65,6 +65,8 @@ process join_split_cubes {
         output_cube = "${parent}/${basename}.zeros.fits"
 
         """
+        #!/bin/bash --login
+
         python3 -u /app/join_subcubes.py \
             -f $file_string \
             -o $output_cube \
@@ -83,7 +85,7 @@ process pull_racstools_image {
         container = "${params.SINGULARITY_CACHEDIR}/racstools_latest.sif"
 
         """
-        #!/bin/bash
+        #!/bin/bash --login
 
         # check image exists
         [ ! -f ${container} ] && { singularity pull ${container} ${params.RACS_TOOLS_IMAGE}; }
@@ -104,7 +106,7 @@ process beamcon_2D {
         file = file(image)
 
         """
-        #!/bin/bash
+        #!/bin/bash ---login
 
 	    srun --export=ALL --mpi=pmi2 -n 12 singularity exec --bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT} \
             ${container} \
