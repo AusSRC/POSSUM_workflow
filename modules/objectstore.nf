@@ -1,5 +1,4 @@
 process objectstore_upload {
-    debug true
 
     input:
         val ready
