@@ -21,6 +21,8 @@ process split_cube {
 
     script:
         """
+        #!/bin/bash --login
+
         python3 -u /app/fits_split.py \
             --input "$image_cube" \
             --output "${params.WORKDIR}/${params.SBID}/${params.SPLIT_CUBE_SUBDIR}/$stokes" \
@@ -101,6 +103,8 @@ process run_hpx_tiling {
         }
 
         """
+        #!/bin/bash --login
+
         export CASADATA=${params.CASADATA}/casadata
         export PYTHONPATH='\$PYTHONPATH:${params.CASADATA}'
 
@@ -150,6 +154,8 @@ process join_split_hpx_tiles {
         hpx_tile = file("${params.WORKDIR}/${params.TILE_COMPONENT_OUTPUT_DIR}/$obs_id/survey/$stokes/${params.HPX_TILE_PREFIX}.${obs_id}.${pixel_id}.${stokes}.fits")
 
         """
+        #!/bin/bash --login
+
         python3 -u /app/join_subcubes.py \
             -f $file_string \
             -o $hpx_tile \
@@ -173,6 +179,8 @@ process repair_tiles {
 
     script:
         """
+        #!/bin/bash --login
+
         python3 /app/repair_incomplete_tiles.py \
             "${params.WORKDIR}/${params.TILE_COMPONENT_OUTPUT_DIR}/$obs_id/survey/$stokes/" \
             --overwrite
