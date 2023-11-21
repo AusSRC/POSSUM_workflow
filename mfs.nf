@@ -33,8 +33,8 @@ workflow {
         tile_weights(sbid, hpx_tile_map.out.obs_id, parse_emu_manifest.out.weights_file, hpx_tile_map.out.tile_map, 'w')
 
         // upload mfs to Acacia
-        objectstore_upload(tile_image.out.combine(tile_weights.out), 
-                           hpx_tile_map.out.obs_id, 
-                           "mfs")
+        //objectstore_upload(tile_image.out.combine(tile_weights.out), 
+        //                   hpx_tile_map.out.obs_id, 
+        //                   "mfs")
 
 }
