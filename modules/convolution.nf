@@ -7,7 +7,6 @@ nextflow.enable.dsl = 2
 // ----------------------------------------------------------------------------------------
 
 process split_cube {
-    executor = "local"
     container = params.HPX_TILING_IMAGE
     containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
 
@@ -32,7 +31,6 @@ process split_cube {
 }
 
 process get_split_cubes {
-    executor = "local"
 
     input:
         val files_str
@@ -46,7 +44,6 @@ process get_split_cubes {
 }
 
 process join_split_cubes {
-    executor = "local"
     container = params.HPX_TILING_IMAGE
     containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
 
@@ -65,7 +62,7 @@ process join_split_cubes {
         output_cube = "${parent}/${basename}.zeros.fits"
 
         """
-        #!/bin/bash --login
+        #!/bin/bash
 
         python3 -u /app/join_subcubes.py \
             -f $file_string \
@@ -75,17 +72,15 @@ process join_split_cubes {
 }
 
 process pull_racstools_image {
-    executor = "local"
 
     output:
-        stdout emit: stdout
         val container, emit: container
 
     script:
         container = "${params.SINGULARITY_CACHEDIR}/racstools_latest.sif"
 
         """
-        #!/bin/bash --login
+        #!/bin/bash
 
         # check image exists
         [ ! -f ${container} ] && { singularity pull ${container} ${params.RACS_TOOLS_IMAGE}; }
@@ -106,7 +101,7 @@ process beamcon_2D {
         file = file(image)
 
         """
-        #!/bin/bash ---login
+        #!/bin/bash
 
 	    srun --export=ALL --mpi=pmi2 -n 12 singularity exec --bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT} \
             ${container} \
@@ -117,7 +112,6 @@ process beamcon_2D {
 }
 
 process extract_beamlog {
-    executor = "local"
     container = params.METADATA_IMAGE
     containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
 
@@ -138,7 +132,6 @@ process extract_beamlog {
 }
 
 process copy_beamlog {
-    executor = "local"
 
     input:
         val image_cube
@@ -181,7 +174,7 @@ process beamcon_3D {
         file = file(image_cube)
 
         """
-        #!/bin/bash --login
+        #!/bin/bash
 
         export MPICH_OFI_STARTUP_CONNECT=1
         export MPICH_OFI_VERBOSE=1
@@ -201,7 +194,6 @@ process beamcon_3D {
 }
 
 process get_cube_conv {
-    executor = 'local'
 
     input:
         val image_cube

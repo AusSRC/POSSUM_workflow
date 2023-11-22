@@ -7,7 +7,6 @@ nextflow.enable.dsl = 2
 // ----------------------------------------------------------------------------------------
 
 process check {
-    executor = 'local'
 
     input:
         val sbid
@@ -25,7 +24,6 @@ process check {
 }
 
 process download {
-    executor = 'local'
     container = params.METADATA_IMAGE
     containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
 

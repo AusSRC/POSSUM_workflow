@@ -7,7 +7,6 @@ nextflow.enable.dsl = 2
 // ----------------------------------------------------------------------------------------
 
 process observation_start_time {
-    executor = 'local'
 
     container = params.METADATA_IMAGE
     containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
@@ -30,7 +29,6 @@ process observation_start_time {
 }
 
 process observation_end_time {
-    executor = 'local'
 
     container = params.METADATA_IMAGE
     containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
@@ -44,6 +42,7 @@ process observation_end_time {
     script:
         """
         #!python3
+
         from astropy.io import fits
         from astropy.time import Time
         import astropy.units as u

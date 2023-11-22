@@ -7,7 +7,6 @@ nextflow.enable.dsl = 2
 // ----------------------------------------------------------------------------------------
 
 process split_cube {
-    executor = 'local'
 
     container = params.HPX_TILING_IMAGE
     containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
@@ -29,7 +28,6 @@ process split_cube {
 }
 
 process get_split_cubes {
-    executor = "local"
 
     input:
         val files_str
@@ -45,7 +43,6 @@ process get_split_cubes {
 
 // This is required for the beamcon "robust" method.
 process nan_to_zero {
-    executor = 'local'
     
     container = params.METADATA_IMAGE
     containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
@@ -101,23 +98,22 @@ process run_hpx_tiling {
         }
 
         """
-        #!/bin/bash --login
+        #!/bin/bash
 
         export CASADATA=${params.CASADATA}/casadata
         export PYTHONPATH='\$PYTHONPATH:${params.CASADATA}'
 
         python3 -u /app/casa_tiling.py \
-            -i "$obs_id" \
-            -c "$image_cube" \
-            -m "$pixel_map_csv" \
-            -o "$output" \
-            -t "${params.HPX_TILE_TEMPLATE}" \
-            -p "$prefix"
+            -i $obs_id \
+            -c $image_cube \
+            -m $pixel_map_csv \
+            -o $output \
+            -t ${params.HPX_TILE_TEMPLATE} \
+            -p $prefix
         """
 }
 
 process get_unique_pixel_ids {
-    executor = 'local'
 
     input:
         val check
@@ -152,7 +148,7 @@ process join_split_hpx_tiles {
         hpx_tile = file("${params.WORKDIR}/${params.TILE_COMPONENT_OUTPUT_DIR}/$obs_id/survey/$stokes/${params.HPX_TILE_PREFIX}.${obs_id}.${pixel_id}.${stokes}.fits")
 
         """
-        #!/bin/bash --login
+        #!/bin/bash
 
         python3 -u /app/join_subcubes.py \
             -f $file_string \
@@ -177,7 +173,7 @@ process repair_tiles {
 
     script:
         """
-        #!/bin/bash --login
+        #!/bin/bash
 
         python3 /app/repair_incomplete_tiles.py \
             "${params.WORKDIR}/${params.TILE_COMPONENT_OUTPUT_DIR}/$obs_id/survey/$stokes/" \
@@ -198,15 +194,26 @@ workflow split_casa_tiling {
 
     main:
         split_cube(image_cube, stokes)
+
         get_split_cubes(split_cube.out.files_str, stokes)
+
         run_hpx_tiling(obs_id,
                        get_split_cubes.out.subcubes.flatten(),
                        pixel_map,
                        stokes,
                        "survey")
-        get_unique_pixel_ids(run_hpx_tiling.out.image_cube_out.collect(), obs_id, stokes)
-        join_split_hpx_tiles(get_unique_pixel_ids.out.pixel_id.flatten(), obs_id, stokes)
-        repair_tiles(join_split_hpx_tiles.out.ready.collect(), obs_id, stokes)
+
+        get_unique_pixel_ids(run_hpx_tiling.out.image_cube_out.collect(), 
+                             obs_id, 
+                             stokes)
+
+        join_split_hpx_tiles(get_unique_pixel_ids.out.pixel_id.flatten(), 
+                             obs_id, 
+                             stokes)
+
+        repair_tiles(join_split_hpx_tiles.out.ready.collect(), 
+                     obs_id, 
+                     stokes)
 
     emit:
         ready = repair_tiles.out.ready
@@ -243,7 +250,7 @@ workflow tiling {
                        'mfs')
 
     emit:
-        ready = run_hpx_tiling.out.image_cube
+        ready = run_hpx_tiling.out.image_cube_out
 }
 
 // ----------------------------------------------------------------------------------------

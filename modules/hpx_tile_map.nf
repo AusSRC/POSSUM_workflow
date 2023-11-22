@@ -7,7 +7,6 @@ nextflow.enable.dsl = 2
 // ----------------------------------------------------------------------------------------
 
 process check {
-    executor = 'local'
 
     input:
         val sbid
@@ -33,7 +32,6 @@ process check {
 }
 
 process get_obs_id {
-    executor = 'local'
 
     input:
         val image_cube
@@ -48,7 +46,6 @@ process get_obs_id {
 
 // This method was required for earlier SBIDs e.g. 9992
 process get_obs_id_from_footprint_file {
-    executor = 'local'
 
     input:
         val footprint_file
@@ -62,7 +59,6 @@ process get_obs_id_from_footprint_file {
 }
 
 process get_footprint_file {
-    executor = 'local'
 
     container = params.METADATA_IMAGE
     containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
@@ -84,7 +80,6 @@ process get_footprint_file {
 }
 
 process generate_tile_map {
-    executor = 'local'
 
     container = params.HPX_TILING_IMAGE
     containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
@@ -94,7 +89,7 @@ process generate_tile_map {
         val obs_id
 
     output:
-        stdout emit: stdout
+        val true, emit: done
 
     script:
         """
@@ -107,7 +102,6 @@ process generate_tile_map {
 }
 
 process get_tile_map {
-    executor = 'local'
 
     input:
         val check
@@ -134,7 +128,7 @@ workflow hpx_tile_map {
         get_footprint_file(evaluation_files)
         get_obs_id_from_footprint_file(get_footprint_file.out.stdout)
         generate_tile_map(get_footprint_file.out.stdout, get_obs_id_from_footprint_file.out.obs_id)
-        get_tile_map(generate_tile_map.out.stdout)
+        get_tile_map(generate_tile_map.out.done)
 
     emit:
         obs_id = get_obs_id_from_footprint_file.out.obs_id

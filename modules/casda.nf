@@ -3,7 +3,6 @@
 nextflow.enable.dsl = 2
 
 process download {
-    executor = 'local'
     container = params.CASDA_DOWNLOAD_IMAGE
     containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
 
@@ -21,6 +20,7 @@ process download {
     script:
         """
         #!/bin/bash
+
         if [ ! -f "$manifest" ]; then
             python3 -u /app/casda_download.py \
                 -s $sbid \
@@ -35,7 +35,6 @@ process download {
 import groovy.json.JsonSlurper
 
 process parse_possum_manifest {
-    executor = 'local'
 
     input:
         val manifest
@@ -68,11 +67,27 @@ process parse_possum_manifest {
                 weights_file = it
             }
         }
+
+        if (i_file == null) {
+            throw new Exception("stokes i file is not found")
+        }
+
+        if (q_file == null) {
+            throw new Exception("stokes q file is not found")
+        }
+
+        if (u_file == null) {
+            throw new Exception("stokes u file is not found")
+        }
+
+        if (weights_file == null) {
+            throw new Exception("weights file is not found")
+        }
+
 }
 
 
 process parse_emu_manifest {
-    executor = 'local'
 
     input:
         val manifest
@@ -94,6 +109,14 @@ process parse_emu_manifest {
             else if (it.matches('(.*)weights.i.(.*).cont.taylor.0.(.*)')) {
                 weights_file = it
             }
+        }
+
+        if (i_file == null) {
+            throw new Exception("stokes i file is not found")
+        }
+
+        if (weights_file == null) {
+            throw new Exception("weights file is not found")
         }
 }
 
