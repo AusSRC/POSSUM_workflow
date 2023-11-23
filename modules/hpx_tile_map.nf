@@ -24,7 +24,7 @@ process check {
         [ ! -f ${params.HPX_TILE_CONFIG} ] && { echo "HEALPIX tiling configuration file does not exist"; exit 1; }
 
         # Check working directories
-        [ ! -d ${params.WORKDIR}/$sbid ] && mkdir -p ${params.WORKDIR}/$sbid
+        [ ! -d ${params.WORKDIR}/sbid_processing/$sbid ] && mkdir -p ${params.WORKDIR}/sbid_processing/$sbid
         [ ! -d ${params.WORKDIR}/${params.TILE_COMPONENT_OUTPUT_DIR} ] && mkdir -p ${params.WORKDIR}/${params.TILE_COMPONENT_OUTPUT_DIR}
 
         exit 0
@@ -96,7 +96,7 @@ process generate_tile_map {
         python3 /app/generate_tile_pixel_map.py \
             -f $footprint_file \
             -i $obs_id \
-            -o "${params.WORKDIR}/${params.SBID}" \
+            -o "${params.WORKDIR}/sbid_processing/${params.SBID}" \
             -j "${params.HPX_TILE_CONFIG}"
         """
 }
@@ -110,7 +110,7 @@ process get_tile_map {
         val pixel_map_csv, emit: pixel_map_csv
 
     exec:
-        pixel_map_csv = file("${params.WORKDIR}/${params.SBID}/*.csv").first()
+        pixel_map_csv = file("${params.WORKDIR}/sbid_processing/${params.SBID}/*.csv").first()
 }
 
 // ----------------------------------------------------------------------------------------

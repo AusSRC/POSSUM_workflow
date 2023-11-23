@@ -6,147 +6,125 @@ nextflow.enable.dsl = 2
 // Processes
 // ----------------------------------------------------------------------------------------
 
-process linmos_setup {
-    output:
-        stdout emit: stdout
-        val container, emit: container
-
-    script:
-        container = file("${params.SINGULARITY_CACHEDIR}/csirocass_yandasoft.img")
-
-        """
-        #!/bin/bash
-
-        # check image exists
-        [ ! -f ${container} ] && { singularity pull ${container} ${params.LINMOS_IMAGE}; }
-
-        # check output directories
-        [ ! -d ${params.WORKDIR}/${params.HPX_TILE_OUTPUT_DIR} ] && mkdir -p ${params.WORKDIR}/${params.HPX_TILE_OUTPUT_DIR}
-        [ ! -d ${params.WORKDIR}/${params.HPX_TILE_OUTPUT_DIR}/${params.LINMOS_CONFIG_SUBDIR} ] && mkdir -p ${params.WORKDIR}/${params.HPX_TILE_OUTPUT_DIR}/${params.LINMOS_CONFIG_SUBDIR}
-
-        exit 0
-        """
-}
-
-process get_files {
+process process_pixel_map {
     executor = 'local'
 
     input:
-        val tile_id
-        val image_cube_map
-        val check
+        val pixel
 
     output:
-        val image_cubes, emit: image_cubes
-        val weights_cubes, emit: weights_cubes
-        val tile_id, emit: tile_id
-
+        val pixel_stokes_list, emit: pixel_stokes_list_out
+    
     exec:
-        image_cubes = "[${image_cube_map[tile_id][0].join(',').replace('.fits', '')}]"
-        weights_cubes = "[${image_cube_map[tile_id][1].join(',').replace('.fits', '')}]"
-}
-
-// Generate configuration
-process update_linmos_config {
-    container = params.MOSAICKING_COMPONENTS_IMAGE
-    containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
-
-    input:
-        val tile_id
-        val image_cubes
-        val weights_cubes
-        val stokes
-
-    output:
-        val tile_id, emit: tile_id
-        val "${params.WORKDIR}/${params.HPX_TILE_OUTPUT_DIR}/${params.LINMOS_CONFIG_SUBDIR}/${params.HPX_TILE_PREFIX}.${tile_id}.${stokes}.linmos.config", emit: linmos_config
-
-    script:
-        """
-        python3 -u /app/update_linmos_config.py \
-            -c ${params.LINMOS_CONFIG_TEMPLATE} \
-            -o ${params.WORKDIR}/${params.HPX_TILE_OUTPUT_DIR}/${params.LINMOS_CONFIG_SUBDIR}/${params.HPX_TILE_PREFIX}.${tile_id}.${stokes}.linmos.config \
-            --linmos.names "$image_cubes" \
-            --linmos.weights "$weights_cubes" \
-            --linmos.outname "${params.WORKDIR}/${params.HPX_TILE_OUTPUT_DIR}/${params.HPX_TILE_PREFIX}.${tile_id}.${stokes}" \
-            --linmos.outweight "${params.WORKDIR}/${params.HPX_TILE_OUTPUT_DIR}/weights.${params.HPX_TILE_PREFIX}.${tile_id}.${stokes}"
-        """
-}
-
-// Linear mosaicking
-process linmos {
-    input:
-        val tile_id
-        val stokes
-        val linmos_config
-        val container
-
-    output:
-        val "${params.WORKDIR}/${params.HPX_TILE_OUTPUT_DIR}/${params.HPX_TILE_PREFIX}.${tile_id}.${stokes}.fits", emit: mosaic
-        val "${params.WORKDIR}/${params.HPX_TILE_OUTPUT_DIR}/weights.${params.HPX_TILE_PREFIX}.${tile_id}.${stokes}.fits", emit: mosaic_weights
-
-    script:
-        """
-        #!/bin/bash
-
-        srun -n 1 singularity exec \
-            --bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT} \
-            $container \
-            linmos-mpi -c $linmos_config
-        """
+        pixel_stokes_list = pixel.getValue()
 }
 
 
-process generate_tile_name {
-    debug true
-    container = params.HPX_TILING_IMAGE
-    containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
+process generate_linmos_config {
 
-    input:
-        val image_cube
-        val tile_id
-
-    output:
-        stdout emit: filename
-
-    script:
-        """
-        echo $image_cube $tile_id
-
-        python3 -u /app/rename_tiles.py \
-            -i $image_cube \
-            -pf ${params.HPX_TILE_PREFIX} \
-            -c ${params.CENTRAL_FREQUENCY} \
-            -id $tile_id \
-            -v ${params.TILE_NAME_VERSION_NUMBER}
-        """
-}
-
-process update_image_weights_name {
-    debug true
     executor = 'local'
+    container = params.CASDA_DOWNLOAD_IMAGE
+    containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
 
     input:
-        val filename
-        val image_cube
-        val weights_cube
+        val pixel_stokes
 
     output:
-        val output_image_cube, emit: output_image_cube
-        val output_weights_cube, emit: output_weights_cube
+        val linmos_conf, emit: linmos_conf_out
+        val linmos_log_conf, emit: linmos_log_conf_out
+        val mosaic_files, emit: mosaic_files_out
 
     script:
-        def path = file(image_cube).getParent()
-        output_image_cube = "${path}/${filename}"
-        output_weights_cube = "${path}/weights.${filename}"
+        def v = pixel_stokes.getValue()
+        def input_files = v.get('input')
+        def output_files = v.get('output')
+        def stokes = v.get('stokes')
+        def pixel = v.get('pixel')
+        def band = v.get('band')
 
+        linmos_conf = "${params.WORKDIR}/tile_processing/" + pixel + "/linmos_" + band + "_" + stokes + ".conf"
+        linmos_log_conf = "${params.WORKDIR}/tile_processing/" + pixel + "/linmos_" + band + "_" + stokes + ".log_cfg"
+        mosaic_files = output_files
+
+        """
+        #!python3
+
+        import os
+        import json
+        from jinja2 import Environment, FileSystemLoader
+        from pathlib import Path
+
+        img = [${input_files[0].collect{"\"${it}\""}.join(",")}]
+        wgt = [${input_files[1].collect{"\"${it}\""}.join(",")}]
+
+        images = [Path(image) for image in img]
+        weights = [Path(weight) for weight in wgt]
+        images.sort()
+        weights.sort()
+
+        image_out = Path('${output_files[0]}')
+        weight_out = Path('${output_files[1]}')
+        log = Path('${linmos_log_conf}.txt')
+
+        j2_env = Environment(loader=FileSystemLoader('$baseDir/templates'), trim_blocks=True)
+        result = j2_env.get_template('linmos.j2').render(images=images, weights=weights, \
+        image_out=image_out, weight_out=weight_out)
+
+        try:
+            os.makedirs(os.path.dirname('${linmos_conf}'))
+        except:
+            pass
+
+        try:
+            os.makedirs(os.path.dirname('${linmos_log_conf}'))
+        except:
+            pass
+
+        try:
+            os.makedirs(os.path.dirname('${output_files[0]}'))
+        except:
+            pass
+
+        try:
+            os.makedirs(os.path.dirname('${output_files[1]}'))
+        except:
+            pass
+
+        with open('${linmos_conf}', 'w') as f:
+            print(result, file=f)
+
+        result = j2_env.get_template('log_template.j2').render(log=log)
+
+        with open('${linmos_log_conf}', 'w') as f:
+            print(result, file=f)
+        """
+}
+
+
+process run_linmos {
+
+    input:
+        val linmos_conf
+        val linmos_log_conf
+        val mosaic_files
+
+    output:
+        val mosaic_files, emit: mosaic_files
+
+    script:
+        def image_file = mosaic_files[0]
         """
         #!/bin/bash
 
-        mv $image_cube $output_image_cube
-        mv $weights_cube $output_weights_cube
+        if ! test -f $image_file; then
+            srun -n 6 singularity exec \
+                --bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT} \
+                ${params.SINGULARITY_CACHEDIR}/askapsoft_1.14.0-setonix.sif \
+                linmos-mpi -c $linmos_conf -l $linmos_log_conf
+        fi
         """
 }
+
 
 
 // ----------------------------------------------------------------------------------------
@@ -154,24 +132,18 @@ process update_image_weights_name {
 // ----------------------------------------------------------------------------------------
 
 workflow mosaicking {
+
     take:
-        tile_id
-        image_cube_map
-        stokes
+        pixel_map
 
     main:
-        linmos_setup()
-        get_files(tile_id, image_cube_map, linmos_setup.out.stdout)
-        update_linmos_config(get_files.out.tile_id, get_files.out.image_cubes, get_files.out.weights_cubes, stokes)
-        linmos(update_linmos_config.out.tile_id, stokes, update_linmos_config.out.linmos_config, linmos_setup.out.container)
-        //generate_tile_name(linmos.out.mosaic, update_linmos_config.out.tile_id)
-        //update_image_weights_name(
-        //    generate_tile_name.out.filename,
-        //    linmos.out.mosaic,
-        //    linmos.out.mosaic_weights
-        //)
-        
-        //output_test(tile_id, update_linmos_config.out.tile_id)
+        process_pixel_map(pixel_map.flatMap())
+
+        generate_linmos_config(process_pixel_map.out.pixel_stokes_list_out.flatMap())
+
+        run_linmos(generate_linmos_config.out.linmos_conf_out,
+                   generate_linmos_config.out.linmos_log_conf_out,
+                   generate_linmos_config.out.mosaic_files_out)
 
     //emit:
         //tile_id = update_linmos_config.out.tile_id

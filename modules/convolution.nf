@@ -19,13 +19,13 @@ process split_cube {
     script:
         """
         # Make working directory
-        [ ! -d ${params.WORKDIR}/${params.SBID}/${params.ZERO_SPLIT_CUBE_SUBDIR} ] && mkdir -p ${params.WORKDIR}/${params.SBID}/${params.ZERO_SPLIT_CUBE_SUBDIR}
+        [ ! -d ${params.WORKDIR}/sbid_processing/${params.SBID}/${params.ZERO_SPLIT_CUBE_SUBDIR} ] && mkdir -p ${params.WORKDIR}/sbid_processing/${params.SBID}/${params.ZERO_SPLIT_CUBE_SUBDIR}
 
         export PYTHONPATH='\$PYTHONPATH:${params.CASADATA}'
 
         python3 -u /app/split_cube.py \
             -i "$image_cube" \
-            -o "${params.WORKDIR}/${params.SBID}/${params.ZERO_SPLIT_CUBE_SUBDIR}" \
+            -o "${params.WORKDIR}/sbid_processing/${params.SBID}/${params.ZERO_SPLIT_CUBE_SUBDIR}" \
             -n ${params.NAN_TO_ZERO_NSPLIT}
         """
 }
@@ -40,7 +40,7 @@ process get_split_cubes {
 
     exec:
         filenames = files_str.split(',')
-        subcubes = filenames.collect{ it = file("${params.WORKDIR}/${params.SBID}/${params.ZERO_SPLIT_CUBE_SUBDIR}/$it") }
+        subcubes = filenames.collect{ it = file("${params.WORKDIR}/sbid_processing/${params.SBID}/${params.ZERO_SPLIT_CUBE_SUBDIR}/$it") }
 }
 
 process join_split_cubes {
@@ -57,7 +57,7 @@ process join_split_cubes {
     script:
         def parent = file(image_cube).getParent()
         def basename = file(image_cube).getBaseName()
-        def files = file("${params.WORKDIR}/${params.SBID}/${params.ZERO_SPLIT_CUBE_SUBDIR}/*$basename*zeros*.fits")
+        def files = file("${params.WORKDIR}/sbid_processing/${params.SBID}/${params.ZERO_SPLIT_CUBE_SUBDIR}/*$basename*zeros*.fits")
         def file_string = files.join(' ')
         output_cube = "${parent}/${basename}.zeros.fits"
 

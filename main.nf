@@ -30,7 +30,7 @@ workflow {
     sbid = "${params.SBID}"
 
     main:
-        download(sbid, "POSSUM", "${params.WORKDIR}/$sbid/${sbid}.json")
+        download(sbid, "POSSUM", "${params.WORKDIR}/sbid_processing/$sbid/${sbid}.json")
         parse_possum_manifest(download.out.manifest)
         get_evaluation_files(sbid)
 

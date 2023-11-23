@@ -22,7 +22,7 @@ process split_cube {
         """
         python3 -u /app/fits_split.py \
             --input "$image_cube" \
-            --output "${params.WORKDIR}/${params.SBID}/${params.SPLIT_CUBE_SUBDIR}/$stokes" \
+            --output "${params.WORKDIR}/sbid_processing/${params.SBID}/${params.SPLIT_CUBE_SUBDIR}/$stokes" \
             --splits ${params.NSPLIT}
         """
 }
@@ -38,7 +38,7 @@ process get_split_cubes {
 
     exec:
         def pattern = ~/.*fits$/
-        subcubes = new File("${params.WORKDIR}/${params.SBID}/${params.SPLIT_CUBE_SUBDIR}/$stokes").listFiles((FileFilter) { it.isFile() && it.getName().matches(pattern) }).collect{it.getAbsolutePath()}
+        subcubes = new File("${params.WORKDIR}/sbid_processing/${params.SBID}/${params.SPLIT_CUBE_SUBDIR}/$stokes").listFiles((FileFilter) { it.isFile() && it.getName().matches(pattern) }).collect{it.getAbsolutePath()}
 }
 
 // This is required for the beamcon "robust" method.
@@ -94,7 +94,7 @@ process run_hpx_tiling {
             output = "${params.WORKDIR}/${params.TILE_COMPONENT_OUTPUT_DIR}/$obs_id/mfs/$stokes"
         }
         else {
-            output = "${params.WORKDIR}/${params.SBID}/tiles/$obs_id/$stokes/"
+            output = "${params.WORKDIR}/sbid_processing/${params.SBID}/tiles/$obs_id/$stokes/"
         }
 
         """
@@ -124,7 +124,7 @@ process get_unique_pixel_ids {
         val pixel_id, emit: pixel_id
 
     exec:
-        pixel_id = file("${params.WORKDIR}/${params.SBID}/tiles/$obs_id/$stokes/*.fits")
+        pixel_id = file("${params.WORKDIR}/sbid_processing/${params.SBID}/tiles/$obs_id/$stokes/*.fits")
             .collect{ path -> (path.baseName.split('-')[-1] =~ /\d+/).findAll().first() }
             .unique()
 }
@@ -143,7 +143,7 @@ process join_split_hpx_tiles {
         val true, emit: ready
 
     script:
-        files = file("${params.WORKDIR}/${params.SBID}/tiles/$obs_id/$stokes/*${obs_id}-${pixel_id}*.fits")
+        files = file("${params.WORKDIR}/sbid_processing/${params.SBID}/tiles/$obs_id/$stokes/*${obs_id}-${pixel_id}*.fits")
         file_string = files.join(' ')
         hpx_tile = file("${params.WORKDIR}/${params.TILE_COMPONENT_OUTPUT_DIR}/$obs_id/survey/$stokes/${params.HPX_TILE_PREFIX}.${obs_id}.${pixel_id}.${stokes}.fits")
 

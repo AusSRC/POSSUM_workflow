@@ -24,7 +24,7 @@ workflow {
     sbid = "${params.SBID}"
 
     main:
-        download(sbid, "EMU", "${params.WORKDIR}/$sbid/mfs/${sbid}.json")
+        download(sbid, "EMU", "${params.WORKDIR}/sbid_processing/$sbid/mfs/${sbid}.json")
 
         parse_emu_manifest(download.out.manifest)
 
