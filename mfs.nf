@@ -16,7 +16,7 @@ include {
 } from "./modules/casda.nf"
 
 include {
-    objectstore_upload;
+    objectstore_upload_component;
 } from './modules/objectstore'
 
 

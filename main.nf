@@ -22,7 +22,7 @@ include { download;
 } from "./modules/casda.nf"
 
 include {
-    objectstore_upload;
+    objectstore_upload_component;
 } from './modules/objectstore'
 
 
@@ -51,7 +51,9 @@ workflow {
         tile_w(sbid, hpx_tile_map.out.obs_id, parse_possum_manifest.out.weights_file, hpx_tile_map.out.tile_map, 'w')
 
         // upload cubes to Acacia
-        objectstore_upload(tile_i.out.combine(tile_q.out).combine(tile_u.out).combine(tile_w.out), 
-                           hpx_tile_map.out.obs_id, 
-                           "survey")
+        objectstore_upload_component(
+            tile_i.out.combine(tile_q.out).combine(tile_u.out).combine(tile_w.out),
+            hpx_tile_map.out.obs_id,
+            "survey"
+        )
 }

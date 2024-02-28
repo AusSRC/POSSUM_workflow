@@ -14,7 +14,7 @@ process process_pixel_map {
 
     output:
         val pixel_stokes_list, emit: pixel_stokes_list_out
-    
+
     exec:
         pixel_stokes_list = pixel.getValue()
 }
@@ -132,7 +132,6 @@ process run_linmos {
 // ----------------------------------------------------------------------------------------
 
 workflow mosaicking {
-
     take:
         pixel_map
 
@@ -145,10 +144,8 @@ workflow mosaicking {
                    generate_linmos_config.out.linmos_log_conf_out,
                    generate_linmos_config.out.mosaic_files_out)
 
-    //emit:
-        //tile_id = update_linmos_config.out.tile_id
-        //mosaic = linmos.out.mosaic
-        //mosaic_weights = linmos.out.mosaic_weights
+    emit:
+        mosaic_files = run_linmos.out.mosaic_files
 }
 
 // ----------------------------------------------------------------------------------------
