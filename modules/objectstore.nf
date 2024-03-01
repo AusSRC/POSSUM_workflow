@@ -16,6 +16,7 @@ process objectstore_upload_component {
 
 process objectstore_download_component {
     input:
+        val ready
         val tile_id
         val obs_ids
         val component_dir
@@ -41,6 +42,7 @@ process objectstore_download_component {
 
 process objectstore_upload_pixel {
     input:
+        val ready
         val tile_id
         val band
         val tile_dir

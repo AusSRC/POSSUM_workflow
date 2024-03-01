@@ -119,7 +119,7 @@ process run_linmos {
         if ! test -f $image_file; then
             srun -n 6 singularity exec \
                 --bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT} \
-                ${params.SINGULARITY_CACHEDIR}/askapsoft_1.14.0-setonix.sif \
+                ${params.SINGULARITY_CACHEDIR}/${params.LINMOS_IMAGE_NAME}.img \
                 linmos-mpi -c $linmos_conf -l $linmos_log_conf
         fi
         """

@@ -17,6 +17,7 @@ process file_complete_csv {
         val components_dir
         val output_dir
         val csv_out
+        val ready
 
     output:
         val csv_out, emit: csv_out_file
@@ -99,10 +100,10 @@ workflow get_pixel_set {
         components_dir
         output_dir
         csv_out
-        objectstore_stdout
+        ready
 
     main:
-        file_complete_csv(tile_id, obs_ids, band, components_dir, output_dir, csv_out)
+        file_complete_csv(tile_id, obs_ids, band, components_dir, output_dir, csv_out, ready)
         parse_json(file_complete_csv.out.csv_out_file)
 
     emit:
