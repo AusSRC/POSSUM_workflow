@@ -49,6 +49,6 @@ process objectstore_upload_pixel {
 
     script:
         """
-        rclone --s3-chunk-size=128M --progress copy -u --ignore-checksum --include="*band${band}*${tile_id}* "${tile_dir}/${tile_id}" "pawsey0980:possum/tiles/${tile_id}"
+        rclone --s3-chunk-size=128M --progress copy -u --ignore-checksum --include="*band${band}*${tile_id}*" "${tile_dir}/${tile_id}" "pawsey0980:possum/tiles/${tile_id}"
         """
 }

@@ -11,7 +11,7 @@ workflow {
     tile_id = "${params.TILE_ID}"
     obs_ids = "${params.OBS_IDS}"
     band = "${params.BAND}"
-    check_subdir = 'survey/i/'
+    check_subdir = "survey/i/"
     component_dir = "${params.WORKDIR}/components"
     tile_dir = "${params.WORKDIR}/tiles"
     csv_out = "${params.WORKDIR}/config/${tile_id}.${band}.map.json"
@@ -21,7 +21,7 @@ workflow {
 
         // Fetch from acacia if not on scratch
         objectstore_download_component(
-            download_containers.out.ready
+            download_containers.out.ready,
             tile_id,
             obs_ids,
             component_dir,
@@ -42,9 +42,9 @@ workflow {
 
         // Push complete tiles to acacia
         objectstore_upload_pixel(
-            mosaicking.out.mosaic_files
+            mosaicking.out.mosaic_files.collect(),
             tile_id,
             band,
-            tile_dir,
+            tile_dir
         )
 }
