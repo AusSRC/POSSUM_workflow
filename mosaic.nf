@@ -25,7 +25,7 @@ workflow {
             tile_id,
             obs_ids,
             component_dir,
-            check_subdir,
+            check_subdir
         )
 
         // Run mosaicking
