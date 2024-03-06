@@ -49,7 +49,7 @@ process file_complete_csv {
 
         for obs in obs_ids.split(','):
             i_list += [str(Path(i).with_suffix('')) for i in glob.glob(f'{components}/{obs}/{survey_component}/i/*{obs}*{pixel}*i*')]
-            w_list += [str(Path(i).with_suffix('')) for i in glob.glob(f'{components}/{obs}/{survey_component}/w/*{obs}*{pixel}*w*')]
+            w_list += [str(Path(i).with_suffix('')) for i in glob.glob(f'{components}/{obs}/{survey_component}/w/weights*{obs}*{pixel}*')]
 
             o_i = [f'{output_dir}/{pixel}/{survey_component}/POSSUM.band{band}.{obs_str}.{pixel}.i', f'{output_dir}/{pixel}/{survey_component}/POSSUM.band{band}.{obs_str}.{pixel}.w']
 
