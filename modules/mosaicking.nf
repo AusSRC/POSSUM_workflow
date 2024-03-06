@@ -21,13 +21,13 @@ process process_pixel_map {
 
 
 process generate_linmos_config {
-
     executor = 'local'
     container = params.CASDA_DOWNLOAD_IMAGE
     containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
 
     input:
         val pixel_stokes
+        val survey_component
 
     output:
         val linmos_conf, emit: linmos_conf_out
@@ -42,8 +42,8 @@ process generate_linmos_config {
         def pixel = v.get('pixel')
         def band = v.get('band')
 
-        linmos_conf = "${params.WORKDIR}/tile_processing/" + pixel + "/linmos_" + band + "_" + stokes + ".conf"
-        linmos_log_conf = "${params.WORKDIR}/tile_processing/" + pixel + "/linmos_" + band + "_" + stokes + ".log_cfg"
+        linmos_conf = "${params.WORKDIR}/tile_processing/" + pixel + "/linmos_" + survey_component + "_" + band + "_" + stokes + ".conf"
+        linmos_log_conf = "${params.WORKDIR}/tile_processing/" + pixel + "/linmos_" + survey_component + "_" + band + "_" + stokes + ".log_cfg"
         mosaic_files = output_files
 
         """
@@ -102,7 +102,6 @@ process generate_linmos_config {
 
 
 process run_linmos {
-
     input:
         val linmos_conf
         val linmos_log_conf
@@ -134,15 +133,21 @@ process run_linmos {
 workflow mosaicking {
     take:
         pixel_map
+        survey_component
 
     main:
         process_pixel_map(pixel_map.flatMap())
 
-        generate_linmos_config(process_pixel_map.out.pixel_stokes_list_out.flatMap())
+        generate_linmos_config(
+            process_pixel_map.out.pixel_stokes_list_out.flatMap(),
+            survey_component
+        )
 
-        run_linmos(generate_linmos_config.out.linmos_conf_out,
-                   generate_linmos_config.out.linmos_log_conf_out,
-                   generate_linmos_config.out.mosaic_files_out)
+        run_linmos(
+            generate_linmos_config.out.linmos_conf_out,
+            generate_linmos_config.out.linmos_log_conf_out,
+            generate_linmos_config.out.mosaic_files_out
+        )
 
     emit:
         mosaic_files = run_linmos.out.mosaic_files

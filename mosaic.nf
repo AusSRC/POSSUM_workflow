@@ -41,7 +41,10 @@ workflow {
             csv_out,
             objectstore_download_component.out.stdout
         )
-        mosaicking(get_pixel_set.out.pixel_map)
+        mosaicking(
+            get_pixel_set.out.pixel_map,
+            survey_component
+        )
 
         // Push complete tiles to acacia
         objectstore_upload_pixel(
