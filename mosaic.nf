@@ -11,7 +11,8 @@ workflow {
     tile_id = "${params.TILE_ID}"
     obs_ids = "${params.OBS_IDS}"
     band = "${params.BAND}"
-    check_subdir = "survey/i/"
+    survey_component = "${params.SURVEY_COMPONENT}"
+    check_subdir = "${params.SURVEY_COMPONENT}/i/"
     component_dir = "${params.WORKDIR}/components"
     tile_dir = "${params.WORKDIR}/tiles"
     csv_out = "${params.WORKDIR}/config/${tile_id}.${band}.map.json"
@@ -26,6 +27,7 @@ workflow {
             obs_ids,
             component_dir,
             check_subdir,
+            survey_component
         )
 
         // Run mosaicking
@@ -33,6 +35,7 @@ workflow {
             tile_id,
             obs_ids,
             band,
+            survey_component,
             component_dir,
             tile_dir,
             csv_out,
@@ -45,6 +48,7 @@ workflow {
             mosaicking.out.mosaic_files.collect(),
             tile_id,
             band,
-            tile_dir
+            tile_dir,
+            survey_component
         )
 }

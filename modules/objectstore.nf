@@ -21,6 +21,7 @@ process objectstore_download_component {
         val obs_ids
         val component_dir
         val check_subdir
+        val survey_component
 
     output:
         stdout emit: stdout
@@ -32,7 +33,7 @@ process objectstore_download_component {
         for obs_id in \$obs_ids
         do
             if [ -z "\$(ls -A ${component_dir}/\$obs_id/${check_subdir})" ]; then
-                rclone --s3-chunk-size=128M --progress copy -u --ignore-checksum --include="*${tile_id}*" "pawsey0980:possum/components/\$obs_id/survey" "${component_dir}/\$obs_id/survey"
+                rclone --s3-chunk-size=128M --progress copy -u --ignore-checksum --include="*${tile_id}*" "pawsey0980:possum/components/\$obs_id/${survey_component}" "${component_dir}/\$obs_id/${survey_component}"
             else
               exit 0
             fi
@@ -46,9 +47,10 @@ process objectstore_upload_pixel {
         val tile_id
         val band
         val tile_dir
+        val survey_component
 
     script:
         """
-        rclone --s3-chunk-size=128M --progress copy -u --ignore-checksum --include="*band${band}*${tile_id}*" "${tile_dir}/${tile_id}" "pawsey0980:possum/tiles/${tile_id}"
+        rclone --s3-chunk-size=128M --progress copy -u --ignore-checksum --include="*band${band}*${tile_id}*" "${tile_dir}/${survey_component}/${tile_id}" "pawsey0980:possum/tiles/${survey_component}/${tile_id}"
         """
 }

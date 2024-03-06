@@ -14,6 +14,7 @@ process file_complete_csv {
         val tile_id
         val obs_ids
         val band
+        val survey_component
         val components_dir
         val output_dir
         val csv_out
@@ -34,6 +35,7 @@ process file_complete_csv {
     pixel = '${tile_id}'
     obs_ids = '${obs_ids}'
     band = ${band}
+    survey_component = '${survey_component}'
     components = '${components_dir}'
     output_dir = '${output_dir}'
     csv_out = '${csv_out}'
@@ -47,14 +49,14 @@ process file_complete_csv {
     w_list = []
 
     for obs in obs_ids.split(','):
-        i_list += [str(Path(i).with_suffix('')) for i in glob.glob(f'{components}/{obs}/survey/i/*{obs}*{pixel}*i*')]
-        q_list += [str(Path(i).with_suffix('')) for i in glob.glob(f'{components}/{obs}/survey/q/*{obs}*{pixel}*q*')]
-        u_list += [str(Path(i).with_suffix('')) for i in glob.glob(f'{components}/{obs}/survey/u/*{obs}*{pixel}*u*')]
-        w_list += [str(Path(i).with_suffix('')) for i in glob.glob(f'{components}/{obs}/survey/w/*{obs}*{pixel}*w*')]
+        i_list += [str(Path(i).with_suffix('')) for i in glob.glob(f'{components}/{obs}/{survey_component}/i/*{obs}*{pixel}*i*')]
+        q_list += [str(Path(i).with_suffix('')) for i in glob.glob(f'{components}/{obs}/{survey_component}/q/*{obs}*{pixel}*q*')]
+        u_list += [str(Path(i).with_suffix('')) for i in glob.glob(f'{components}/{obs}/{survey_component}/u/*{obs}*{pixel}*u*')]
+        w_list += [str(Path(i).with_suffix('')) for i in glob.glob(f'{components}/{obs}/{survey_component}/w/*{obs}*{pixel}*w*')]
 
-        o_i = [f'{output_dir}/{pixel}/POSSUM.band{band}.{obs_str}.{pixel}.i', f'{output_dir}/{pixel}/POSSUM.band{band}.{obs_str}.{pixel}.w']
-        o_q = [f'{output_dir}/{pixel}/POSSUM.band{band}.{obs_str}.{pixel}.q', f'{output_dir}/{pixel}/POSSUM.band{band}.{obs_str}.{pixel}.w']
-        o_u = [f'{output_dir}/{pixel}/POSSUM.band{band}.{obs_str}.{pixel}.u', f'{output_dir}/{pixel}/POSSUM.band{band}.{obs_str}.{pixel}.w']
+        o_i = [f'{output_dir}/{pixel}/{survey_component}/POSSUM.band{band}.{obs_str}.{pixel}.i', f'{output_dir}/{pixel}/{survey_component}/POSSUM.band{band}.{obs_str}.{pixel}.w']
+        o_q = [f'{output_dir}/{pixel}/{survey_component}/POSSUM.band{band}.{obs_str}.{pixel}.q', f'{output_dir}/{pixel}/{survey_component}/POSSUM.band{band}.{obs_str}.{pixel}.w']
+        o_u = [f'{output_dir}/{pixel}/{survey_component}/POSSUM.band{band}.{obs_str}.{pixel}.u', f'{output_dir}/{pixel}/{survey_component}/POSSUM.band{band}.{obs_str}.{pixel}.w']
 
         i_list.sort()
         q_list.sort()
@@ -97,13 +99,14 @@ workflow get_pixel_set {
         tile_id
         obs_ids
         band
+        survey_component
         components_dir
         output_dir
         csv_out
         ready
 
     main:
-        file_complete_csv(tile_id, obs_ids, band, components_dir, output_dir, csv_out, ready)
+        file_complete_csv(tile_id, obs_ids, band, survey_component, components_dir, output_dir, csv_out, ready)
         parse_json(file_complete_csv.out.csv_out_file)
 
     emit:
