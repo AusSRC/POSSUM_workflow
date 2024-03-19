@@ -12,7 +12,6 @@ workflow {
     obs_ids = "${params.OBS_IDS}"
     band = "${params.BAND}"
     survey_component = "${params.SURVEY_COMPONENT}"
-    check_subdir = "${params.SURVEY_COMPONENT}/i/"
     component_dir = "${params.WORKDIR}/components"
     tile_dir = "${params.WORKDIR}/tiles"
     csv_out = "${params.WORKDIR}/config/${tile_id}.${band}.map.json"
@@ -26,7 +25,6 @@ workflow {
             tile_id,
             obs_ids,
             component_dir,
-            check_subdir,
             survey_component
         )
 
