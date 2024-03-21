@@ -32,25 +32,27 @@ workflow {
 
         conv2d(parse_emu_manifest.out.i_file, "i")
 
-        hpx_tile_map(sbid, 
-                     conv2d.out.cube_conv, 
+        hpx_tile_map(sbid,
+                     conv2d.out.cube_conv,
                      get_evaluation_files.out.evaluation_files)
 
-        tile_image(sbid, 
-                   hpx_tile_map.out.obs_id, 
-                   conv2d.out.cube_conv, 
-                   hpx_tile_map.out.tile_map, 
+        tile_image(sbid,
+                   hpx_tile_map.out.obs_id,
+                   conv2d.out.cube_conv,
+                   hpx_tile_map.out.tile_map,
                    'i')
 
-        tile_weights(sbid, 
-                     hpx_tile_map.out.obs_id, 
-                     parse_emu_manifest.out.weights_file, 
-                     hpx_tile_map.out.tile_map, 
+        tile_weights(sbid,
+                     hpx_tile_map.out.obs_id,
+                     parse_emu_manifest.out.weights_file,
+                     hpx_tile_map.out.tile_map,
                      'w')
 
         // upload mfs to Acacia
-        objectstore_upload(tile_image.out.combine(tile_weights.out), 
-                           hpx_tile_map.out.obs_id, 
-                           "mfs")
+        objectstore_upload_component(
+            tile_image.out.combine(tile_weights.out),
+            hpx_tile_map.out.obs_id,
+            "mfs"
+        )
 
 }
