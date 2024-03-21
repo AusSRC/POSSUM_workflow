@@ -19,7 +19,6 @@ process process_pixel_map {
         pixel_stokes_list = pixel.getValue()
 }
 
-
 process generate_linmos_config {
     executor = 'local'
     container = params.CASDA_DOWNLOAD_IMAGE
@@ -100,7 +99,6 @@ process generate_linmos_config {
         """
 }
 
-
 process run_linmos {
     input:
         val linmos_conf
@@ -115,6 +113,31 @@ process run_linmos {
         """
         #!/bin/bash
 
+        export OMP_NUM_THREADS=4
+        if ! test -f $image_file; then
+            srun singularity exec \
+                --bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT} \
+                ${params.SINGULARITY_CACHEDIR}/${params.LINMOS_IMAGE_NAME}.img \
+                linmos -c $linmos_conf -l $linmos_log_conf
+        fi
+        """
+}
+
+process run_linmos_mpi {
+    input:
+        val linmos_conf
+        val linmos_log_conf
+        val mosaic_files
+
+    output:
+        val mosaic_files, emit: mosaic_files
+
+    script:
+        def image_file = mosaic_files[0]
+        """
+        #!/bin/bash
+
+        export OMP_NUM_THREADS=4
         if ! test -f $image_file; then
             srun -n 6 singularity exec \
                 --bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT} \
@@ -143,14 +166,26 @@ workflow mosaicking {
             survey_component
         )
 
-        run_linmos(
-            generate_linmos_config.out.linmos_conf_out,
-            generate_linmos_config.out.linmos_log_conf_out,
-            generate_linmos_config.out.mosaic_files_out
-        )
+        if (survey_component == 'mfs') {
+            run_linmos(
+                generate_linmos_config.out.linmos_conf_out,
+                generate_linmos_config.out.linmos_log_conf_out,
+                generate_linmos_config.out.mosaic_files_out,
+            )
+            mosaic_files = run_linmos.out.mosaic_files
+        }
+
+        else {
+            run_linmos_mpi(
+                generate_linmos_config.out.linmos_conf_out,
+                generate_linmos_config.out.linmos_log_conf_out,
+                generate_linmos_config.out.mosaic_files_out,
+            )
+            mosaic_files = run_linmos_mpi.out.mosaic_files
+        }
 
     emit:
-        mosaic_files = run_linmos.out.mosaic_files
+        mosaic_files
 }
 
 // ----------------------------------------------------------------------------------------

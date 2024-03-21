@@ -7,9 +7,6 @@ nextflow.enable.dsl = 2
 // ----------------------------------------------------------------------------------------
 
 process file_complete_csv {
-    executor = 'local'
-    module = ['python/3.10.10']
-
     input:
         val tile_id
         val obs_ids
@@ -26,7 +23,7 @@ process file_complete_csv {
     script:
     if (survey_component == 'mfs')
         """
-        #!python
+        #!python3
 
         import glob
         import json
@@ -64,7 +61,7 @@ process file_complete_csv {
         """
     else
         """
-        #!python
+        #!python3
 
         import glob
         import json
