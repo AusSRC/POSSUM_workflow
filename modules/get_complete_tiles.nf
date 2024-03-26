@@ -90,9 +90,9 @@ process file_complete_csv {
             u_list += [str(Path(i).with_suffix('')) for i in glob.glob(f'{components}/{obs}/{survey_component}/u/*{obs}*{pixel}*u*')]
             w_list += [str(Path(i).with_suffix('')) for i in glob.glob(f'{components}/{obs}/{survey_component}/w/*{obs}*{pixel}*w*')]
 
-            o_i = [f'{output_dir}/{pixel}/{survey_component}/POSSUM.{survey_component}.band{band}.{obs_str}.{pixel}.i', f'{output_dir}/{pixel}/{survey_component}/POSSUM.{survey_component}.band{band}.{obs_str}.{pixel}.w']
-            o_q = [f'{output_dir}/{pixel}/{survey_component}/POSSUM.{survey_component}.band{band}.{obs_str}.{pixel}.q', f'{output_dir}/{pixel}/{survey_component}/POSSUM.{survey_component}.band{band}.{obs_str}.{pixel}.w']
-            o_u = [f'{output_dir}/{pixel}/{survey_component}/POSSUM.{survey_component}.band{band}.{obs_str}.{pixel}.u', f'{output_dir}/{pixel}/{survey_component}/POSSUM.{survey_component}.band{band}.{obs_str}.{pixel}.w']
+            o_i = [f'{output_dir}/{pixel}/{survey_component}/POSSUM.band{band}.{obs_str}.{pixel}.i', f'{output_dir}/{pixel}/{survey_component}/POSSUM.band{band}.{obs_str}.{pixel}.w']
+            o_q = [f'{output_dir}/{pixel}/{survey_component}/POSSUM.band{band}.{obs_str}.{pixel}.q', f'{output_dir}/{pixel}/{survey_component}/POSSUM.band{band}.{obs_str}.{pixel}.w']
+            o_u = [f'{output_dir}/{pixel}/{survey_component}/POSSUM.band{band}.{obs_str}.{pixel}.u', f'{output_dir}/{pixel}/{survey_component}/POSSUM.band{band}.{obs_str}.{pixel}.w']
 
             i_list.sort()
             q_list.sort()
