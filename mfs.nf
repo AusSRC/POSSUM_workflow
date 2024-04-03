@@ -48,11 +48,10 @@ workflow {
                      hpx_tile_map.out.tile_map,
                      'w')
 
-        // upload mfs to Acacia
         objectstore_upload_component(
             tile_image.out.combine(tile_weights.out),
             hpx_tile_map.out.obs_id,
             "mfs"
         )
-
 }
+

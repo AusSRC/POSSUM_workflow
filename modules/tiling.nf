@@ -7,7 +7,6 @@ nextflow.enable.dsl = 2
 // ----------------------------------------------------------------------------------------
 
 process split_cube {
-
     container = params.HPX_TILING_IMAGE
     containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
 
@@ -28,7 +27,6 @@ process split_cube {
 }
 
 process get_split_cubes {
-
     input:
         val files_str
         val stokes
@@ -43,7 +41,6 @@ process get_split_cubes {
 
 // This is required for the beamcon "robust" method.
 process nan_to_zero {
-    
     container = params.METADATA_IMAGE
     containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
 
@@ -74,7 +71,6 @@ process nan_to_zero {
 }
 
 process run_hpx_tiling {
-
     container = params.HPX_TILING_IMAGE
     containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
 
@@ -114,7 +110,6 @@ process run_hpx_tiling {
 }
 
 process get_unique_pixel_ids {
-
     input:
         val check
         val obs_id
@@ -203,16 +198,16 @@ workflow split_casa_tiling {
                        stokes,
                        "survey")
 
-        get_unique_pixel_ids(run_hpx_tiling.out.image_cube_out.collect(), 
-                             obs_id, 
+        get_unique_pixel_ids(run_hpx_tiling.out.image_cube_out.collect(),
+                             obs_id,
                              stokes)
 
-        join_split_hpx_tiles(get_unique_pixel_ids.out.pixel_id.flatten(), 
-                             obs_id, 
+        join_split_hpx_tiles(get_unique_pixel_ids.out.pixel_id.flatten(),
+                             obs_id,
                              stokes)
 
-        repair_tiles(join_split_hpx_tiles.out.ready.collect(), 
-                     obs_id, 
+        repair_tiles(join_split_hpx_tiles.out.ready.collect(),
+                     obs_id,
                      stokes)
 
     emit:
@@ -243,9 +238,9 @@ workflow tiling {
         stokes
 
     main:
-        run_hpx_tiling(obs_id, 
-                       image_cube, 
-                       tile_map, 
+        run_hpx_tiling(obs_id,
+                       image_cube,
+                       tile_map,
                        stokes,
                        'mfs')
 

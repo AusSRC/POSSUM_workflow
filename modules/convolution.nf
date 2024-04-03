@@ -31,7 +31,6 @@ process split_cube {
 }
 
 process get_split_cubes {
-
     input:
         val files_str
 
@@ -72,7 +71,6 @@ process join_split_cubes {
 }
 
 process pull_racstools_image {
-
     output:
         val container, emit: container
 
@@ -89,7 +87,6 @@ process pull_racstools_image {
 }
 
 process beamcon_2D {
-
     input:
         val image
         val container
@@ -103,7 +100,10 @@ process beamcon_2D {
         """
         #!/bin/bash
 
-	    srun --export=ALL --mpi=pmi2 -n 12 singularity exec --bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT} \
+	export OMP_NUM_THREADS=1
+        export NUMBA_CACHE_DIR="${params.NUMBA_CACHE_DIR}"
+
+	    singularity exec --bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT} \
             ${container} \
             beamcon_2D ${image} \
             --bmaj ${params.BMAJ} --bmin ${params.BMIN} --bpa ${params.BPA} \
@@ -132,7 +132,6 @@ process extract_beamlog {
 }
 
 process copy_beamlog {
-
     input:
         val image_cube
         val evaluation_files
@@ -161,7 +160,6 @@ process copy_beamlog {
 }
 
 process beamcon_3D {
-
     input:
         val image_cube
         val beamlog
@@ -179,6 +177,7 @@ process beamcon_3D {
         export MPICH_OFI_STARTUP_CONNECT=1
         export MPICH_OFI_VERBOSE=1
         export OMP_NUM_THREADS=1
+        export NUMBA_CACHE_DIR="${params.NUMBA_CACHE_DIR}"
 
 	    srun --export=ALL --mpi=pmi2 -n 36 singularity exec --bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT} \
             ${container} \
@@ -189,12 +188,10 @@ process beamcon_3D {
             --bmaj ${params.BMAJ} --bmin ${params.BMIN} --bpa ${params.BPA} \
             --cutoff ${params.CUTOFF} \
             -vvv
-
         """
 }
 
 process get_cube_conv {
-
     input:
         val image_cube
         val suffix

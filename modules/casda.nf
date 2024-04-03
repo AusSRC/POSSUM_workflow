@@ -35,7 +35,6 @@ process download {
 import groovy.json.JsonSlurper
 
 process parse_possum_manifest {
-
     input:
         val manifest
 
@@ -44,7 +43,7 @@ process parse_possum_manifest {
         val q_file, emit: q_file
         val u_file, emit: u_file
         val weights_file, emit: weights_file
-    
+
     exec:
         i_file = null
         q_file = null
@@ -88,7 +87,6 @@ process parse_possum_manifest {
 
 
 process parse_emu_manifest {
-
     input:
         val manifest
 
