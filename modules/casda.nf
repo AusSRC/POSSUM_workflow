@@ -24,7 +24,7 @@ process download {
         if [ ! -f "$manifest" ]; then
             python3 -u /app/casda_download.py \
                 -s $sbid \
-                -o ${params.WORKDIR}/$sbid \
+                -o ${params.WORKDIR}/sbid_processing/$sbid \
                 -c ${params.CASDA_CREDENTIALS} \
                 -m $manifest \
                 -p $project
