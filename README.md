@@ -111,3 +111,19 @@ We use the [CASA imregrid](https://casadocs.readthedocs.io/en/v6.2.0/_modules/ca
 
 We do this twice in our full pre-processing pipeline code: for convolution to allow for using the `robust` method (requires setting nan to zero), and for `imregrid` to produce tiles as described earlier. The number of splits in frequency are specified by the `NAN_TO_ZERO_NSPLIT` and `NSPLIT` parameters respectively. Depending on the size of the cube and the size of the worker nodes, users will have to set these parameters to optimally utilise computing resources.
 
+### Download NASA CDDIS data
+
+The `FRion predict` step of the pipeline (only for `main.nf`) requires you to download data from NASA CDDIS. To do this you will need to create an [EarthData](https://urs.earthdata.nasa.gov/) account. Then you will create a `.netrc` file containing those credentials with the following content:
+
+```
+machine urs.earthdata.nasa.gov login <username> password <password>
+```
+
+Then you will need to change the file access pattern and move it to the home directory on the cluster which you intend to deploy the pipeline
+
+```
+chmod 600 .netrc
+mv .netrc ~/
+```
+
+For more info: https://urs.earthdata.nasa.gov/documentation/for_users
