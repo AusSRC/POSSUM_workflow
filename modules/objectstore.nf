@@ -2,6 +2,19 @@
 
 nextflow.enable.dsl = 2
 
+process objectstore_upload_stokes_component {
+    input:
+        val ready
+        val obs_id
+        val subdir
+        val stokes
+
+    script:
+        """
+        rclone --s3-chunk-size=128M --progress copy -u --ignore-checksum "${params.WORKDIR}/${params.TILE_COMPONENT_OUTPUT_DIR}/${obs_id}/${subdir}/${stokes}" "pawsey0980:possum/components/${obs_id}/${subdir}/${stokes}"
+        """
+}
+
 process objectstore_upload_component {
     input:
         val ready
