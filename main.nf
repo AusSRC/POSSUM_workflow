@@ -22,10 +22,10 @@ include { download;
 } from "./modules/casda.nf"
 
 include {
-    objectstore_upload_component as upload_i;
-    objectstore_upload_component as upload_q;
-    objectstore_upload_component as upload_u;
-    objectstore_upload_component as upload_w;
+    objectstore_upload_stokes_component as upload_i;
+    objectstore_upload_stokes_component as upload_q;
+    objectstore_upload_stokes_component as upload_u;
+    objectstore_upload_stokes_component as upload_w;
 } from './modules/objectstore'
 
 
