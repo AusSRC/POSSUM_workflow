@@ -52,7 +52,7 @@ process add_sbid_history_to_fits_header {
         #!/bin/bash
 
         python3 /app/add_to_fits_header.py \
-            -i $image, $weights \
+            -i $image $weights \
             -k SBID HISTORY \
             -v $sbids "Pre-processed with the AusSRC POSSUM pipeline"
         """
