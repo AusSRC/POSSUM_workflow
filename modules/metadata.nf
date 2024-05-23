@@ -26,9 +26,11 @@ process parse_sbids_from_pixel_map {
 
     exec:
         def input_files = pixel_stokes.getValue().get('input')
-        def get_sbid = { fn.split(".SB")[1].substring(0, 5) }
+        def get_sbid = { it.split(".SB")[1].substring(0, 5) }
         def sbids = []
-        input_files.eachWithIndex{ it, i -> sbids[i] = get_sbid(it) }
+        for (f in input_files) {
+            sbids.add(get_sbid(f))
+	}
         sbids.sort()
         def sbids_str = sbids.join(' ')
 }
