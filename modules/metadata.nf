@@ -60,7 +60,7 @@ process add_sbid_history_to_fits_header {
         python3 /app/add_to_fits_header.py \
             -i ${image}.fits ${weights}.fits \
             -k SBID HISTORY HISTORY \
-            -v $sbids "Pre-processed with the AusSRC POSSUM pipeline" "${workflow.repository} - ${workflow.revision} [${workflow.commitId}]"
+            -v "$sbids" "Pre-processed with the AusSRC POSSUM pipeline" "${workflow.repository} - ${workflow.revision} [${workflow.commitId}]"
         """
 }
 
