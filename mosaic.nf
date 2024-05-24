@@ -45,13 +45,13 @@ workflow {
             survey_component
         )
         add_to_fits_header(
-            mosaicking.out.mosaic_files,
+            mosaicking.out.mosaic_files.collect(),
             get_pixel_set.out.pixel_map
         )
 
         // Push complete tiles to acacia
         objectstore_upload_pixel(
-            mosaicking.out.mosaic_files.collect(),
+            add_to_fits_header.out.ready,
             tile_id,
             band,
             tile_dir,

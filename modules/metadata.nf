@@ -4,8 +4,10 @@ nextflow.enable.dsl = 2
 
 process process_pixel_map {
     executor = 'local'
+    debug true
 
     input:
+	val ready
         val pixel
 
     output:
@@ -17,6 +19,7 @@ process process_pixel_map {
 
 process parse_sbids_from_pixel_map {
     executor = 'local'
+    debug true
 
     input:
         val pixel_stokes
@@ -25,19 +28,20 @@ process parse_sbids_from_pixel_map {
         val sbids_str, emit: sbids
 
     exec:
-        def input_files = pixel_stokes.getValue().get('input')
-        def get_sbid = { it.split(".SB")[1].substring(0, 5) }
+        def input_files = pixel_stokes.getValue().get('input')[0]
+        def get_sbid = { it.split('SB')[1].substring(0, 5) }
         def sbids = []
         for (f in input_files) {
             sbids.add(get_sbid(f))
 	}
         sbids.sort()
-        def sbids_str = sbids.join(' ')
+        sbids_str = sbids.join(' ')
 }
 
 process add_sbid_history_to_fits_header {
     container = params.METADATA_IMAGE
     containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
+    debug true
 
     input:
         val mosaic_files
@@ -54,9 +58,9 @@ process add_sbid_history_to_fits_header {
         #!/bin/bash
 
         python3 /app/add_to_fits_header.py \
-            -i $image $weights \
-            -k SBID HISTORY \
-            -v $sbids "Pre-processed with the AusSRC POSSUM pipeline"
+            -i ${image}.fits ${weights}.fits \
+            -k SBID HISTORY HISTORY \
+            -v $sbids "Pre-processed with the AusSRC POSSUM pipeline" "${workflow.repository} - ${workflow.revision} [${workflow.commitId}]"
         """
 }
 
@@ -66,7 +70,7 @@ workflow add_to_fits_header {
         pixel_map
 
     main:
-        process_pixel_map(pixel_map.flatMap())
+        process_pixel_map(mosaic_files, pixel_map.flatMap())
         parse_sbids_from_pixel_map(
             process_pixel_map.out.pixel_stokes_list_out.flatMap()
         )

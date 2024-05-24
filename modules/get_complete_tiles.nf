@@ -7,6 +7,7 @@ nextflow.enable.dsl = 2
 // ----------------------------------------------------------------------------------------
 
 process file_complete_csv {
+    debug true
     input:
         val tile_id
         val obs_ids
@@ -113,6 +114,7 @@ import groovy.json.JsonSlurper
 
 process parse_json {
     executor = 'local'
+    debug true
 
     input:
         val csv_input
