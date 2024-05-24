@@ -39,7 +39,7 @@ process parse_sbids_from_pixel_map {
         sbids_str = sbids.join(' ')
 }
 
-process add_to_fits_header {
+process add_history_to_fits_header {
     container = params.METADATA_IMAGE
     containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
     debug true
@@ -70,8 +70,8 @@ workflow add_to_fits_header {
         pixel_map
 
     main:
-        add_to_fits_header(mosaic_files)
-        ready = add_sbid_history_to_fits_header.out.ready
+        add_history_to_fits_header(mosaic_files)
+        ready = add_history_to_fits_header.out.ready
 
     emit:
         ready
