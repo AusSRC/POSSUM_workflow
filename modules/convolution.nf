@@ -100,7 +100,7 @@ process beamcon_2D {
         """
         #!/bin/bash
 
-	export OMP_NUM_THREADS=1
+	    export OMP_NUM_THREADS=1
         export NUMBA_CACHE_DIR="${params.NUMBA_CACHE_DIR}"
 
 	    singularity exec --bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT} \

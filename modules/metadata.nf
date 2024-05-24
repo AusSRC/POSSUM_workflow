@@ -17,6 +17,7 @@ process process_pixel_map {
         pixel_stokes_list = pixel.getValue()
 }
 
+// NOTE: currently only works for MFS images
 process parse_sbids_from_pixel_map {
     executor = 'local'
     debug true
@@ -38,14 +39,13 @@ process parse_sbids_from_pixel_map {
         sbids_str = sbids.join(' ')
 }
 
-process add_sbid_history_to_fits_header {
+process add_to_fits_header {
     container = params.METADATA_IMAGE
     containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
     debug true
 
     input:
         val mosaic_files
-        val sbids
 
     output:
         val true, emit: ready
@@ -59,8 +59,8 @@ process add_sbid_history_to_fits_header {
 
         python3 /app/add_to_fits_header.py \
             -i ${image}.fits ${weights}.fits \
-            -k SBID HISTORY HISTORY \
-            -v $sbids "Pre-processed with the AusSRC POSSUM pipeline" "${workflow.repository} - ${workflow.revision} [${workflow.commitId}]"
+            -k HISTORY HISTORY \
+            -v "Pre-processed with the AusSRC POSSUM pipeline" "${workflow.repository} - ${workflow.revision} [${workflow.commitId}]"
         """
 }
 
@@ -70,14 +70,7 @@ workflow add_to_fits_header {
         pixel_map
 
     main:
-        process_pixel_map(mosaic_files, pixel_map.flatMap())
-        parse_sbids_from_pixel_map(
-            process_pixel_map.out.pixel_stokes_list_out.flatMap()
-        )
-        add_sbid_history_to_fits_header(
-            mosaic_files,
-            parse_sbids_from_pixel_map.out.sbids
-        )
+        add_to_fits_header(mosaic_files)
         ready = add_sbid_history_to_fits_header.out.ready
 
     emit:
