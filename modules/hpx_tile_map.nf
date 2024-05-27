@@ -97,7 +97,8 @@ process generate_tile_map {
             -f $footprint_file \
             -i $obs_id \
             -o "${params.WORKDIR}/sbid_processing/${params.SBID}" \
-            -j "${params.HPX_TILE_CONFIG}"
+            -j "${params.HPX_TILE_CONFIG}" \
+            -r
         """
 }
 
