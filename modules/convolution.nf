@@ -75,7 +75,7 @@ process pull_racstools_image {
         val container, emit: container
 
     script:
-        container = "${params.SINGULARITY_CACHEDIR}/racstools_latest.sif"
+        container = "${params.SINGULARITY_CACHEDIR}/${params.RACS_TOOLS_IMAGE_NAME}.sif"
 
         """
         #!/bin/bash
