@@ -174,12 +174,10 @@ process beamcon_3D {
         """
         #!/bin/bash
 
-        export MPICH_OFI_STARTUP_CONNECT=1
-        export MPICH_OFI_VERBOSE=1
         export OMP_NUM_THREADS=1
         export NUMBA_CACHE_DIR="${params.NUMBA_CACHE_DIR}"
 
-	    srun --export=ALL --mpi=pmi2 -n 36 singularity exec --bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT} \
+        singularity exec --bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT} \
             ${container} \
             beamcon_3D ${image_cube} \
             --mode total \
@@ -187,6 +185,8 @@ process beamcon_3D {
             --suffix ${params.BEAMCON_3D_SUFFIX} \
             --bmaj ${params.BMAJ} --bmin ${params.BMIN} --bpa ${params.BPA} \
             --cutoff ${params.CUTOFF} \
+            --ncores 8 \
+            --executor_type process \
             -vvv
         """
 }

@@ -20,8 +20,8 @@ The pipeline needs access to a CASDA credentials file `casda.ini`:
 
 ```
 [CASDA]
-username = 
-password = 
+username =
+password =
 ```
 
 ### Spectral cube images (`main.nf`)
@@ -35,8 +35,8 @@ password =
 #SBATCH --mem-per-cpu=32G
 #SBATCH --time=24:00:00
 
-module load singularity/3.11.4-mpi
-module load nextflow/23.04.3
+module load singularity/4.1.0-slurm
+module load nextflow/23.10.0
 
 export MPICH_OFI_STARTUP_CONNECT=1
 export MPICH_OFI_VERBOSE=1
@@ -63,8 +63,8 @@ sbatch script.sh
 #SBATCH --mem-per-cpu=32G
 #SBATCH --time=24:00:00
 
-module load singularity/3.11.4-mpi
-module load nextflow/23.04.3
+module load singularity/4.1.0-slurm
+module load nextflow/23.10.0
 
 export MPICH_OFI_STARTUP_CONNECT=1
 export MPICH_OFI_VERBOSE=1
@@ -95,7 +95,7 @@ This section describes how the output files are organised. All outputs are store
     ├── <SBID_N>                        # A sub-folder for each SBID containing observation metadata
     │   ├── evaluation_files            # Download evaluation files
     │   └── hpx_tile_map.csv            # Generated map for HPX pixels covered by image cube (map file)
-    └── TILE_COMPONENT_OUTPUT_DIR       # HPX tile components for each SBID are stored here                 
+    └── TILE_COMPONENT_OUTPUT_DIR       # HPX tile components for each SBID are stored here
         ├── <OBS_ID_1>
         ├── ...
         └── <OBS_ID_N>                  # All tiled images a separated by observation ID

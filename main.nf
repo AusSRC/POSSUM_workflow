@@ -17,7 +17,8 @@ include {
     split_tiling as tile_w;
 } from './modules/tiling'
 
-include { download;
+include {
+    download;
     parse_possum_manifest;
 } from "./modules/casda.nf"
 

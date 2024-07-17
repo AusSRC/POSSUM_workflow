@@ -59,7 +59,7 @@ process observation_end_time {
 // Generate predict
 process frion_predict {
     container = params.IONOSPHERIC_CORRECTION_IMAGE
-    containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
+    containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT} --bind /home:/home"
 
     input:
         val q_cube
