@@ -5,20 +5,10 @@ nextflow.enable.dsl = 2
 include { get_evaluation_files } from './modules/get_evaluation_files'
 include { conv2d } from './modules/convolution'
 include { hpx_tile_map } from './modules/hpx_tile_map'
-include {
-    tiling as tile_image;
-    tiling as tile_weights;
-} from './modules/tiling'
-
-include {
-    download;
-    parse_emu_manifest;
-} from "./modules/casda.nf"
-
-include {
-    objectstore_upload_component;
-} from './modules/objectstore'
-
+include { tiling as tile_image; tiling as tile_weights; } from './modules/tiling'
+include { download; parse_emu_manifest; } from "./modules/casda.nf"
+include { objectstore_upload_component; } from './modules/objectstore'
+include { provenance as provenance_image; provenance as provenance_weights; } from './modules/metadata'
 
 workflow {
     sbid = "${params.SBID}"
@@ -48,8 +38,11 @@ workflow {
                      hpx_tile_map.out.tile_map,
                      'w')
 
+        provenance_image(sbid, hpx_tile_map.out.obs_id, "mfs", "i", tile_image.out.ready)
+        provenance_weights(sbid, hpx_tile_map.out.obs_id, "mfs", "w", tile_weights.out.ready)
+
         objectstore_upload_component(
-            tile_image.out.combine(tile_weights.out),
+            provenance_image.out.combine(provenance_weights.out),
             hpx_tile_map.out.obs_id,
             "mfs"
         )
