@@ -23,6 +23,13 @@ include {
 } from "./modules/casda.nf"
 
 include {
+    provenance as provenance_i;
+    provenance as provenance_q;
+    provenance as provenance_u;
+    provenance as provenance_w;
+} from './modules/provenance'
+
+include {
     objectstore_upload_stokes_component as upload_i;
     objectstore_upload_stokes_component as upload_q;
     objectstore_upload_stokes_component as upload_u;
@@ -54,9 +61,15 @@ workflow {
         tile_u(sbid, hpx_tile_map.out.obs_id, ionospheric_correction.out.u_cube_corr, hpx_tile_map.out.tile_map, 'u')
         tile_w(sbid, hpx_tile_map.out.obs_id, parse_possum_manifest.out.weights_file, hpx_tile_map.out.tile_map, 'w')
 
+        // Metadata
+        provenance_i(sbid, hpx_tile_map.out.obs_id, "survey", "i", tile_i.out.ready)
+        provenance_q(sbid, hpx_tile_map.out.obs_id, "survey", "q", tile_q.out.ready)
+        provenance_u(sbid, hpx_tile_map.out.obs_id, "survey", "u", tile_u.out.ready)
+        provenance_w(sbid, hpx_tile_map.out.obs_id, "survey", "w", tile_w.out.ready)
+
         // upload cubes to Acacia
-        upload_i(tile_i.out.ready, hpx_tile_map.out.obs_id, "survey", "i")
-        upload_q(tile_q.out.ready, hpx_tile_map.out.obs_id, "survey", "q")
-        upload_u(tile_u.out.ready, hpx_tile_map.out.obs_id, "survey", "u")
-        upload_w(tile_w.out.ready, hpx_tile_map.out.obs_id, "survey", "w")
+        upload_i(provenance_i.out.ready, hpx_tile_map.out.obs_id, "survey", "i")
+        upload_q(provenance_q.out.ready, hpx_tile_map.out.obs_id, "survey", "q")
+        upload_u(provenance_u.out.ready, hpx_tile_map.out.obs_id, "survey", "u")
+        upload_w(provenance_w.out.ready, hpx_tile_map.out.obs_id, "survey", "w")
 }
