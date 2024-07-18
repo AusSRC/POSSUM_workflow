@@ -47,6 +47,7 @@ process get_component_files {
         val obs_id
         val subdir
         val stokes
+        val ready
 
     output:
         val files_str, emit: files_str
@@ -103,7 +104,7 @@ workflow provenance {
         ready
 
     main:
-        get_component_files(obs_id, subdir, stokes)
+        get_component_files(obs_id, subdir, stokes, ready)
         add_history_to_fits_header(get_component_files.out.files_str, sbid, obs_id, subdir, stokes)
         ready = add_history_to_fits_header.out.ready
 
