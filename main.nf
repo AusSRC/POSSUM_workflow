@@ -27,7 +27,7 @@ include {
     provenance as provenance_q;
     provenance as provenance_u;
     provenance as provenance_w;
-} from './modules/provenance'
+} from './modules/metadata'
 
 include {
     objectstore_upload_stokes_component as upload_i;
