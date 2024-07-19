@@ -6,7 +6,6 @@ include { mosaicking } from './modules/mosaicking'
 include { get_pixel_set } from './modules/get_complete_tiles'
 include { download_containers } from './modules/singularity'
 include { objectstore_download_component; objectstore_upload_pixel } from './modules/objectstore'
-include { add_to_fits_header } from './modules/metadata'
 
 workflow {
     tile_id = "${params.TILE_ID}"
@@ -44,14 +43,10 @@ workflow {
             get_pixel_set.out.pixel_map,
             survey_component
         )
-        add_to_fits_header(
-            mosaicking.out.mosaic_files.collect(),
-            get_pixel_set.out.pixel_map
-        )
 
         // Push complete tiles to acacia
         objectstore_upload_pixel(
-            add_to_fits_header.out.ready,
+            mosaicking.out.mosaic_files.collect(),
             tile_id,
             band,
             tile_dir,

@@ -120,7 +120,7 @@ process parse_json {
         val csv_input
 
     output:
-        val pixel_map, emit: pixel_map_out
+        val pixel_map, emit: pixel_map
 
     exec:
         def jsonSlurper = new JsonSlurper()
@@ -148,7 +148,7 @@ workflow get_pixel_set {
         parse_json(file_complete_csv.out.csv_out_file)
 
     emit:
-        pixel_map = parse_json.out.pixel_map_out
+        pixel_map = parse_json.out.pixel_map
 }
 
 // ----------------------------------------------------------------------------------------

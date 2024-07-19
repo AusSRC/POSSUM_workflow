@@ -65,9 +65,18 @@ process generate_linmos_config {
         weight_out = Path('${output_files[1]}')
         log = Path('${linmos_log_conf}.txt')
 
+        image_history = [
+            "AusSRC POSSUM pipeline tile mosaicking START",
+            "${workflow.repository} - ${workflow.revision} [${workflow.commitId}]",
+            "${workflow.commandLine}",
+            "${workflow.start}",
+            "Austin Shen (austin.shen@csiro.au)",
+            "AusSRC POSSUM pipeline tile mosaicking END"
+        ]
+
         j2_env = Environment(loader=FileSystemLoader('$baseDir/templates'), trim_blocks=True)
         result = j2_env.get_template('linmos.j2').render(images=images, weights=weights, \
-        image_out=image_out, weight_out=weight_out)
+        image_out=image_out, weight_out=weight_out, image_history=image_history, )
 
         try:
             os.makedirs(os.path.dirname('${linmos_conf}'))
@@ -115,7 +124,7 @@ process run_linmos {
 
         export OMP_NUM_THREADS=4
         if ! test -f $image_file; then
-            srun singularity exec \
+            singularity exec \
                 --bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT} \
                 ${params.SINGULARITY_CACHEDIR}/${params.LINMOS_IMAGE_NAME}.img \
                 linmos -c $linmos_conf -l $linmos_log_conf
