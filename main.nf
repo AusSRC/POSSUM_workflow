@@ -7,6 +7,7 @@ include {
     conv3d as conv_i;
     conv3d as conv_q;
     conv3d as conv_u;
+    pull_racstools_image;
 } from './modules/convolution'
 include { hpx_tile_map } from './modules/hpx_tile_map'
 include { ionospheric_correction } from './modules/ionospheric_correction'
@@ -39,10 +40,12 @@ include {
 
 workflow {
     sbid = "${params.SBID}"
+    band = "${params.BAND}"
 
     main:
         download(sbid, "POSSUM", "${params.WORKDIR}/sbid_processing/$sbid/${sbid}.json")
-        parse_possum_manifest(download.out.manifest)
+        pull_racstools_image()
+        parse_possum_manifest(download.out.manifest, pull_racstools_image.out.container)
         get_evaluation_files(sbid)
 
         conv_i(parse_possum_manifest.out.i_file, get_evaluation_files.out.evaluation_files, "i")
@@ -53,7 +56,7 @@ workflow {
         ionospheric_correction(conv_q.out.cube_conv, conv_u.out.cube_conv)
 
         // Produce tile map
-        hpx_tile_map(sbid, conv_i.out.cube_conv, get_evaluation_files.out.evaluation_files)
+        hpx_tile_map(sbid, conv_i.out.cube_conv, get_evaluation_files.out.evaluation_files, band)
 
         // Tiling
         tile_i(sbid, hpx_tile_map.out.obs_id, conv_i.out.cube_conv, hpx_tile_map.out.tile_map, 'i')

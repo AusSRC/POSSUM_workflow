@@ -37,6 +37,7 @@ import groovy.json.JsonSlurper
 process parse_possum_manifest {
     input:
         val manifest
+        val ready
 
     output:
         val i_file, emit: i_file

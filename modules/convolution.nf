@@ -215,8 +215,7 @@ workflow conv2d {
         stokes
 
     main:
-        pull_racstools_image()
-        beamcon_2D(image_cube, pull_racstools_image.out.container)
+        beamcon_2D(image_cube, "${params.SINGULARITY_CACHEDIR}/${params.RACS_TOOLS_IMAGE_NAME}.sif")
         get_cube_conv(image_cube, "${params.BEAMCON_2D_SUFFIX}", beamcon_2D.out.stdout)
 
     emit:
@@ -230,10 +229,9 @@ workflow conv3d {
         stokes
 
     main:
-        pull_racstools_image()
         extract_beamlog(evaluation_files)
         copy_beamlog(cube, evaluation_files, extract_beamlog.out.stdout)
-        beamcon_3D(cube, copy_beamlog.out.beamlog, pull_racstools_image.out.container)
+        beamcon_3D(cube, copy_beamlog.out.beamlog, "${params.SINGULARITY_CACHEDIR}/${params.RACS_TOOLS_IMAGE_NAME}.sif")
         get_cube_conv(cube, "${params.BEAMCON_3D_SUFFIX}", beamcon_3D.out.stdout)
 
     emit:

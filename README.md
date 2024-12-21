@@ -111,6 +111,19 @@ We use the [CASA imregrid](https://casadocs.readthedocs.io/en/v6.2.0/_modules/ca
 
 We do this twice in our full pre-processing pipeline code: for convolution to allow for using the `robust` method (requires setting nan to zero), and for `imregrid` to produce tiles as described earlier. The number of splits in frequency are specified by the `NAN_TO_ZERO_NSPLIT` and `NSPLIT` parameters respectively. Depending on the size of the cube and the size of the worker nodes, users will have to set these parameters to optimally utilise computing resources.
 
+### CASAdata
+
+Docs: https://casadocs.readthedocs.io/en/stable/notebooks/external-data.html
+
+To run this pipeline you will need to create a custom path for casadata. The required data files should automatically be downloaded when you run CASA. The default path is `~/.casa/data`, but you can change this path by including the environment variable with custom file path `CASASITECONFIG = "/software/projects/ja3/ashen/.casa/config.py"`. The `config.py` file should include the following:
+
+```
+rundata = '/software/projects/ja3/ashen/.casadata/data'
+measurespath = '/software/projects/ja3/ashen/.casadata/data'
+```
+
+The above example points to a software directory on Setonix where the downloaded CASA data files will not be purged. **NOTE**: it is ideal to avoid using the home directory on HPC systems since Nextflow have added the `--no_home` default option for some of their newest releases.
+
 ### Download NASA CDDIS data
 
 The `FRion predict` step of the pipeline (only for `main.nf`) requires you to download data from NASA CDDIS. To do this you will need to create an [EarthData](https://urs.earthdata.nasa.gov/) account. Then you will create a `.netrc` file containing those credentials with the following content:

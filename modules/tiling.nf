@@ -95,10 +95,6 @@ process run_hpx_tiling {
 
         """
         #!/bin/bash
-
-        export CASADATA=${params.CASADATA}/casadata
-        export PYTHONPATH='\$PYTHONPATH:${params.CASADATA}'
-
         python3 -u /app/casa_tiling.py \
             -i $obs_id \
             -c $image_cube \
@@ -148,7 +144,6 @@ process join_split_hpx_tiles {
         python3 -u /app/join_subcubes.py \
             -f $file_string \
             -o $hpx_tile \
-            -a 0 \
             --overwrite
         """
 }
