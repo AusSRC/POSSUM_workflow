@@ -3,6 +3,8 @@
 nextflow.enable.dsl = 2
 
 process objectstore_upload_stokes_component {
+    errorStrategy 'ignore'
+
     input:
         val ready
         val obs_id
@@ -16,6 +18,8 @@ process objectstore_upload_stokes_component {
 }
 
 process objectstore_upload_component {
+    errorStrategy 'ignore'
+
     input:
         val ready
         val obs_id
@@ -28,6 +32,8 @@ process objectstore_upload_component {
 }
 
 process objectstore_download_component {
+    errorStrategy 'ignore'
+
     input:
         val ready
         val tile_id
@@ -50,6 +56,8 @@ process objectstore_download_component {
 }
 
 process objectstore_upload_pixel {
+    errorStrategy 'ignore'
+
     input:
         val ready
         val tile_id
@@ -60,5 +68,20 @@ process objectstore_upload_pixel {
     script:
         """
         rclone --s3-chunk-size=128M --progress copy -u --ignore-checksum --include="*band${band}*${tile_id}*" "${tile_dir}/${tile_id}/${survey_component}" "pawsey0980:possum/tiles/${survey_component}/${tile_id}"
+        """
+}
+
+process objectstore_upload_frion_predict {
+    errorStrategy 'ignore'
+
+    input:
+        val ready
+        val sbid
+        val obs_id
+        val survey_component
+
+    script:
+        """
+        rclone --s3-chunk-size=128M --progress copy -u --ignore-checksum "${params.WORKDIR}/sbid_processing/$sbid/${params.FRION_PREDICT_OUTFILE}" "pawsey0980:possum/components/$obs_id/$survey_component"
         """
 }

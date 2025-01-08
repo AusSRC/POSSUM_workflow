@@ -35,6 +35,7 @@ include {
     objectstore_upload_stokes_component as upload_q;
     objectstore_upload_stokes_component as upload_u;
     objectstore_upload_stokes_component as upload_w;
+    objectstore_upload_frion_predict;
 } from './modules/objectstore'
 
 
@@ -75,4 +76,5 @@ workflow {
         upload_q(provenance_q.out.ready, hpx_tile_map.out.obs_id, "survey", "q")
         upload_u(provenance_u.out.ready, hpx_tile_map.out.obs_id, "survey", "u")
         upload_w(provenance_w.out.ready, hpx_tile_map.out.obs_id, "survey", "w")
+        objectstore_upload_frion_predict(provenance_q.out.ready, sbid, hpx_tile_map.out.obs_id, "survey")
 }

@@ -50,7 +50,8 @@ process observation_end_time {
         hdu = fits.open("${q_cube}")
         header = hdu[0].header
         start = Time(header["DATE"])
-        end = start + 6000 * u.second
+        duration = float(header["DURATION"])
+        end = start + duration * u.second
 
         print(end.value, end="")
         """
