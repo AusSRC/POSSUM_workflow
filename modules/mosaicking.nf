@@ -6,26 +6,26 @@ nextflow.enable.dsl = 2
 // Processes
 // ----------------------------------------------------------------------------------------
 
-process process_pixel_map {
-    executor = 'local'
-
-    input:
-        val pixel
-
-    output:
-        val pixel_stokes_list, emit: pixel_stokes_list_out
-
-    exec:
-        pixel_stokes_list = pixel.getValue()
-}
 
 process generate_linmos_config {
     executor = 'local'
     container = params.CASDA_DOWNLOAD_IMAGE
     containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
 
+    /* Expects input object "pixel_stokes_config" with the following format
+        i = {
+            pixel=11400,
+            band=1,
+            stokes=i,
+            input=[
+                [/scratch/ja3/possum_survey/survey/components/0954-55/survey/i/PSM.0954-55.11400.i, /scratch/ja3/possum_survey/survey/components/1017-60/survey/i/PSM.1017-60.11400.i, /scratch/ja3/possum_survey/survey/components/1029-55/survey/i/PSM.1029-55.11400.i, /scratch/ja3/possum_survey/survey/components/1058-60/survey/i/PSM.1058-60.11400.i],
+                [/scratch/ja3/possum_survey/survey/components/0954-55/survey/w/PSM.0954-55.11400.w, /scratch/ja3/possum_survey/survey/components/1017-60/survey/w/PSM.1017-60.11400.w, /scratch/ja3/possum_survey/survey/components/1029-55/survey/w/PSM.1029-55.11400.w, /scratch/ja3/possum_survey/survey/components/1058-60/survey/w/PSM.1058-60.11400.w]],
+            output=[/scratch/ja3/possum_survey/survey/tiles/11400/survey/POSSUM.band1.1017-60_1029-55_0954-55_1058-60.11400.i, /scratch/ja3/possum_survey/survey/tiles/11400/survey/POSSUM.band1.1017-60_1029-55_0954-55_1058-60.11400.w]
+        }
+    */
+
     input:
-        val pixel_stokes
+        val pixel_stokes_config
         val survey_component
 
     output:
@@ -34,7 +34,7 @@ process generate_linmos_config {
         val mosaic_files, emit: mosaic_files_out
 
     script:
-        def v = pixel_stokes.getValue()
+        def v = pixel_stokes_config.getValue()
         def input_files = v.get('input')
         def output_files = v.get('output')
         def stokes = v.get('stokes')
@@ -157,23 +157,17 @@ process run_linmos_mpi {
 }
 
 
-
 // ----------------------------------------------------------------------------------------
 // Workflow
 // ----------------------------------------------------------------------------------------
 
 workflow mosaicking {
     take:
-        pixel_map
+        pixel_stokes_config
         survey_component
 
     main:
-        process_pixel_map(pixel_map.flatMap())
-
-        generate_linmos_config(
-            process_pixel_map.out.pixel_stokes_list_out.flatMap(),
-            survey_component
-        )
+        generate_linmos_config(pixel_stokes_config, survey_component)
 
         if (survey_component == 'mfs') {
             run_linmos(

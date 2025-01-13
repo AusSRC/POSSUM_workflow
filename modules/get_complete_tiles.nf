@@ -7,7 +7,6 @@ nextflow.enable.dsl = 2
 // ----------------------------------------------------------------------------------------
 
 process file_complete_csv {
-    debug true
     input:
         val tile_id
         val obs_ids
@@ -114,7 +113,6 @@ import groovy.json.JsonSlurper
 
 process parse_json {
     executor = 'local'
-    debug true
 
     input:
         val csv_input
@@ -126,6 +124,19 @@ process parse_json {
         def jsonSlurper = new JsonSlurper()
         def f = new File(csv_input)
         pixel_map = jsonSlurper.parseText(f.text)
+}
+
+process process_pixel_map {
+    executor = 'local'
+
+    input:
+        val pixel
+
+    output:
+        val pixel_stokes_list, emit: pixel_stokes_list
+
+    exec:
+        pixel_stokes_list = pixel.getValue()
 }
 
 // ----------------------------------------------------------------------------------------
@@ -146,9 +157,10 @@ workflow get_pixel_set {
     main:
         file_complete_csv(tile_id, obs_ids, band, survey_component, components_dir, output_dir, csv_out, ready)
         parse_json(file_complete_csv.out.csv_out_file)
+        process_pixel_map(parse_json.out.pixel_map.flatMap())
 
     emit:
-        pixel_map = parse_json.out.pixel_map
+        pixel_map = process_pixel_map.out.pixel_stokes_list
 }
 
 // ----------------------------------------------------------------------------------------
