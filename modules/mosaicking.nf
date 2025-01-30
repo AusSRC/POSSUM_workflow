@@ -17,9 +17,9 @@ process generate_linmos_config {
             band=1,
             stokes=i,
             input=[
-                [/scratch/ja3/possum_survey/survey/components/0954-55/survey/i/PSM.0954-55.11400.i, /scratch/ja3/possum_survey/survey/components/1017-60/survey/i/PSM.1017-60.11400.i, /scratch/ja3/possum_survey/survey/components/1029-55/survey/i/PSM.1029-55.11400.i, /scratch/ja3/possum_survey/survey/components/1058-60/survey/i/PSM.1058-60.11400.i],
-                [/scratch/ja3/possum_survey/survey/components/0954-55/survey/w/PSM.0954-55.11400.w, /scratch/ja3/possum_survey/survey/components/1017-60/survey/w/PSM.1017-60.11400.w, /scratch/ja3/possum_survey/survey/components/1029-55/survey/w/PSM.1029-55.11400.w, /scratch/ja3/possum_survey/survey/components/1058-60/survey/w/PSM.1058-60.11400.w]],
-            output=[/scratch/ja3/possum_survey/survey/tiles/11400/survey/POSSUM.band1.1017-60_1029-55_0954-55_1058-60.11400.i, /scratch/ja3/possum_survey/survey/tiles/11400/survey/POSSUM.band1.1017-60_1029-55_0954-55_1058-60.11400.w]
+                [PSM.0954-55.11400.i, PSM.1017-60.11400.i, PSM.1029-55.11400.i, PSM.1058-60.11400.i],
+                [PSM.0954-55.11400.w, PSM.1017-60.11400.w, PSM.1029-55.11400.w, PSM.1058-60.11400.w]],
+            output=[POSSUM.band1.1017-60_1029-55_0954-55_1058-60.11400.i, POSSUM.band1.1017-60_1029-55_0954-55_1058-60.11400.w]
         }
     */
 
@@ -218,7 +218,6 @@ process run_linmos_mpi {
         val linmos_conf
         val linmos_log_conf
         val mosaic_files
-        val ready
 
     output:
         val mosaic_files, emit: mosaic_files
@@ -263,15 +262,13 @@ workflow mosaicking {
         // Flip axes to [ra, dec, pol, freq] for linmos MPI
         else {
             generate_linmos_config.out.mosaic_files_in.view()
-            flip_to_pol_freq(generate_linmos_config.out.mosaic_files_in.flatten())
             run_linmos_mpi(
                 generate_linmos_config.out.linmos_conf_out,
                 generate_linmos_config.out.linmos_log_conf_out,
-                generate_linmos_config.out.mosaic_files_out,
-                flip_to_pol_freq.out.done.collect()
+                generate_linmos_config.out.mosaic_files_out
             )
             run_linmos_mpi.out.mosaic_files.flatten().view()
-            flip_to_freq_pol(run_linmos_mpi.out.mosaic_files.flatten())
+            flip_to_freq_pol(run_linmos_mpi.out.mosaic_files.flatten().unique())
             mosaic_files = flip_to_freq_pol.out.image_cor.collect()
         }
 

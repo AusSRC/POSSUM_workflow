@@ -42,34 +42,6 @@ process get_split_cubes {
         subcubes = filenames.collect{ it = file("${params.WORKDIR}/sbid_processing/${params.SBID}/${params.ZERO_SPLIT_CUBE_SUBDIR}/$it") }
 }
 
-process join_split_cubes {
-    container = params.HPX_TILING_IMAGE
-    containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
-
-    input:
-        val image_cube
-        val check
-
-    output:
-        val output_cube, emit: output_cube
-
-    script:
-        def parent = file(image_cube).getParent()
-        def basename = file(image_cube).getBaseName()
-        def files = file("${params.WORKDIR}/sbid_processing/${params.SBID}/${params.ZERO_SPLIT_CUBE_SUBDIR}/*$basename*zeros*.fits")
-        def file_string = files.join(' ')
-        output_cube = "${parent}/${basename}.zeros.fits"
-
-        """
-        #!/bin/bash
-
-        python3 -u /app/join_subcubes.py \
-            -f $file_string \
-            -o $output_cube \
-            --overwrite
-        """
-}
-
 process pull_racstools_image {
     output:
         val container, emit: container

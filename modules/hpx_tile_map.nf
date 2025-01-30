@@ -7,7 +7,6 @@ nextflow.enable.dsl = 2
 // ----------------------------------------------------------------------------------------
 
 process check {
-
     input:
         val sbid
         val image_cube
@@ -89,7 +88,8 @@ process select_hpx_tile_config {
 
     exec:
         hpx_tile_config = null
-        if (band == 2) {
+        int band_value = band as Integer
+        if (band_value == 2) {
             hpx_tile_config = "${params.HPX_TILE_CONFIG_BAND2}"
         } else {
             hpx_tile_config = "${params.HPX_TILE_CONFIG_BAND1}"

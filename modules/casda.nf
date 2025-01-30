@@ -33,7 +33,6 @@ process download {
 }
 
 import groovy.json.JsonSlurper
-
 process parse_possum_manifest {
     input:
         val manifest
@@ -86,7 +85,6 @@ process parse_possum_manifest {
 
 }
 
-
 process parse_emu_manifest {
     input:
         val manifest
@@ -117,23 +115,4 @@ process parse_emu_manifest {
         if (weights_file == null) {
             throw new Exception("weights file is not found")
         }
-}
-
-
-workflow download_possum {
-    take:
-        sbid
-        project
-        manifest
-
-    main:
-        download(sbid, project, manifest)
-        parse_possum_manifest(download.out.manifest)
-
-    emit:
-        i = parse_possum_manifest.out.i_file
-        q = parse_possum_manifest.out.q_file
-        u = parse_possum_manifest.out.u_file
-        weights = parse_possum_manifest.out.weights_file
-        sbid = sbid
 }

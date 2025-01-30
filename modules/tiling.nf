@@ -39,37 +39,6 @@ process get_split_cubes {
         subcubes = new File("${params.WORKDIR}/sbid_processing/${params.SBID}/${params.SPLIT_CUBE_SUBDIR}/$stokes").listFiles((FileFilter) { it.isFile() && it.getName().matches(pattern) }).collect{it.getAbsolutePath()}
 }
 
-// This is required for the beamcon "robust" method.
-process nan_to_zero {
-    container = params.METADATA_IMAGE
-    containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
-
-    input:
-        val image_cube
-
-    output:
-        val image_cube_zeros, emit: image_cube_zeros
-
-    script:
-        filename = file(image_cube)
-        image_cube_zeros = "${filename.getParent()}/${filename.getBaseName()}.zeros.${filename.getExtension()}"
-
-        """
-        #!python3
-
-        import numpy as np
-        from astropy.io import fits
-
-        with fits.open("$image_cube", mode="readonly") as hdu:
-            header = hdu[0].header
-            data = np.nan_to_num(hdu[0].data)
-            header['HISTORY'] = 'Replace NaN with zero'
-        hdu = fits.PrimaryHDU(data=data, header=header)
-        hdul = fits.HDUList([hdu])
-        hdul.writeto("$image_cube_zeros", overwrite=True)
-        """
-}
-
 process run_hpx_tiling {
     container = params.HPX_TILING_IMAGE
     containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
@@ -148,9 +117,8 @@ process join_split_hpx_tiles {
         """
 }
 
-
 process repair_tiles {
-    container = params.METADATA_IMAGE
+    container = params.HPX_TILING_IMAGE
     containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
 
     input:

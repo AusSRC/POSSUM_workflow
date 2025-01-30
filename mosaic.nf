@@ -39,7 +39,6 @@ workflow {
             csv_out,
             objectstore_download_component.out.stdout
         )
-
         mosaicking(
             get_pixel_set.out.pixel_map.flatMap(),
             survey_component

@@ -8,3 +8,4 @@ clean.sh
 *params*.yml
 media
 tests
+logs

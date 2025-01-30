@@ -110,7 +110,6 @@ process file_complete_csv {
 }
 
 import groovy.json.JsonSlurper
-
 process parse_json {
     executor = 'local'
 

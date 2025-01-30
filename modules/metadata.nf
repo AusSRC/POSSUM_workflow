@@ -17,28 +17,6 @@ process process_pixel_map {
         pixel_stokes_list = pixel.getValue()
 }
 
-// NOTE: currently only works for MFS images
-process parse_sbids_from_pixel_map {
-    executor = 'local'
-    debug true
-
-    input:
-        val pixel_stokes
-
-    output:
-        val sbids_str, emit: sbids
-
-    exec:
-        def input_files = pixel_stokes.getValue().get('input')[0]
-        def get_sbid = { it.split('SB')[1].substring(0, 5) }
-        def sbids = []
-        for (f in input_files) {
-            sbids.add(get_sbid(f))
-	}
-        sbids.sort()
-        sbids_str = sbids.join(' ')
-}
-
 process get_component_files {
     executor = 'local'
     debug true
