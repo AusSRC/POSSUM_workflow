@@ -26,7 +26,7 @@ workflow {
         // Tiling
         hpx_tile_map(sbid,
                      conv2d.out.cube_conv,
-                     get_evaluation_files.out.evaluation_files
+                     get_evaluation_files.out.evaluation_files,
                      band)
         tile_image(sbid,
                    hpx_tile_map.out.obs_id,
