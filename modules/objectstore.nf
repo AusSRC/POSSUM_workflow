@@ -3,8 +3,6 @@
 nextflow.enable.dsl = 2
 
 process objectstore_upload_stokes_component {
-    errorStrategy 'ignore'
-
     input:
         val ready
         val obs_id
@@ -18,8 +16,6 @@ process objectstore_upload_stokes_component {
 }
 
 process objectstore_upload_component {
-    errorStrategy 'ignore'
-
     input:
         val ready
         val obs_id
@@ -32,8 +28,6 @@ process objectstore_upload_component {
 }
 
 process objectstore_download_component {
-    errorStrategy 'ignore'
-
     input:
         val ready
         val tile_id
@@ -56,8 +50,6 @@ process objectstore_download_component {
 }
 
 process objectstore_upload_pixel {
-    errorStrategy 'ignore'
-
     input:
         val ready
         val tile_id
@@ -72,8 +64,6 @@ process objectstore_upload_pixel {
 }
 
 process objectstore_upload_frion_predict {
-    errorStrategy 'ignore'
-
     input:
         val ready
         val sbid
