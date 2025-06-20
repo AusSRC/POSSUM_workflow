@@ -73,6 +73,21 @@ process add_history_to_fits_header {
         """
 }
 
+process compress {
+    input:
+        val files
+        val ready
+
+    output:
+        val true, emit: ready
+
+    script:
+        """
+        #!/bin/bash
+        gzip $files
+        """
+}
+
 workflow provenance {
     take:
         sbid
@@ -84,7 +99,8 @@ workflow provenance {
     main:
         get_component_files(obs_id, subdir, stokes, ready)
         add_history_to_fits_header(get_component_files.out.files_str, sbid, obs_id, subdir, stokes)
-        ready = add_history_to_fits_header.out.ready
+        compress(get_component_files.out.files_str, add_history_to_fits_header.out.ready)
+        ready = compress.out.ready
 
     emit:
         ready
