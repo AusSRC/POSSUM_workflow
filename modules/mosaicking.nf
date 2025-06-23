@@ -64,6 +64,10 @@ process generate_linmos_config {
         weight_out = Path('${output_files[1]}')
         log = Path('${linmos_log_conf}.txt')
 
+        stokes = str('${stokes}')
+        if stokes != 'i':
+            weight_out = ''
+
         image_history = [
             "AusSRC POSSUM pipeline tile mosaicking START",
             "${workflow.repository} - ${workflow.revision} [${workflow.commitId}]",
@@ -74,8 +78,10 @@ process generate_linmos_config {
         ]
 
         j2_env = Environment(loader=FileSystemLoader('$baseDir/templates'), trim_blocks=True)
-        result = j2_env.get_template('linmos.j2').render(images=images, weights=weights, \
-        image_out=image_out, weight_out=weight_out, image_history=image_history, )
+        result = j2_env.get_template('linmos.j2').render( \
+            images=images, weights=weights, \
+            image_out=image_out, weight_out=weight_out, image_history=image_history \
+        )
 
         try:
             os.makedirs(os.path.dirname('${linmos_conf}'))
