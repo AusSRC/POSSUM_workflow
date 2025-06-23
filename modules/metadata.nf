@@ -84,7 +84,7 @@ process compress {
     script:
         """
         #!/bin/bash
-        gzip $files
+        gzip -f $files
         """
 }
 
