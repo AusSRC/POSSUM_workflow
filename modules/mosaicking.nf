@@ -77,7 +77,7 @@ process generate_linmos_config {
             "AusSRC POSSUM pipeline tile mosaicking END"
         ]
 
-        j2_env = Environment(loader=FileSystemLoader('$baseDir/templates'), trim_blocks=True)
+        j2_env = Environment(loader=FileSystemLoader('${params.LINMOS_TEMPLATES}'), trim_blocks=True)
         result = j2_env.get_template('linmos.j2').render( \
             images=images, weights=weights, \
             image_out=image_out, weight_out=weight_out, image_history=image_history \
