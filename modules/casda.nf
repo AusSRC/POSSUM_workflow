@@ -6,7 +6,7 @@ process download {
     container = params.CASDA_DOWNLOAD_IMAGE
     containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
 
-    errorStrategy { sleep(Math.pow(2, task.attempt) * 200 as long); return 'retry' }
+    errorStrategy { sleep(Math.pow(3, task.attempt) * 200 as long); return 'retry' }
     maxErrors 10
 
     input:
