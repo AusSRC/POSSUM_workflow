@@ -4,7 +4,7 @@ nextflow.enable.dsl = 2
 
 process download {
     container = params.CASDA_DOWNLOAD_IMAGE
-    containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
+    containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT} --bind /home:/home"
 
     errorStrategy { sleep(Math.pow(3, task.attempt) * 200 as long); return 'retry' }
     maxErrors 3
