@@ -10,6 +10,7 @@ process check {
     input:
         val sbid
         val image_cube
+        val ready
 
     output:
         stdout emit: stdout
@@ -140,9 +141,10 @@ workflow hpx_tile_map {
         image_cube
         evaluation_files
         band
+        ready
 
     main:
-        check(sbid, image_cube)
+        check(sbid, image_cube, ready)
         get_footprint_file(evaluation_files)
         get_obs_id_from_footprint_file(get_footprint_file.out.stdout)
         select_hpx_tile_config(get_obs_id_from_footprint_file.out.obs_id, band)

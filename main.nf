@@ -47,7 +47,7 @@ workflow {
         download(sbid, "POSSUM", "${params.WORKDIR}/sbid_processing/$sbid/${sbid}.json")
         pull_racstools_image()
         parse_possum_manifest(download.out.manifest, pull_racstools_image.out.container)
-        get_evaluation_files(sbid)
+        get_evaluation_files(sbid, download.out.done)
 
         conv_i(parse_possum_manifest.out.i_file, get_evaluation_files.out.evaluation_files, "i")
         conv_q(parse_possum_manifest.out.q_file, get_evaluation_files.out.evaluation_files, "q")
@@ -57,7 +57,7 @@ workflow {
         ionospheric_correction(conv_q.out.cube_conv, conv_u.out.cube_conv)
 
         // Produce tile map
-        hpx_tile_map(sbid, conv_i.out.cube_conv, get_evaluation_files.out.evaluation_files, band)
+        hpx_tile_map(sbid, conv_i.out.cube_conv, get_evaluation_files.out.evaluation_files, band, get_evaluation_files.out.done)
 
         // Tiling
         tile_i(sbid, hpx_tile_map.out.obs_id, conv_i.out.cube_conv, hpx_tile_map.out.tile_map, 'i')

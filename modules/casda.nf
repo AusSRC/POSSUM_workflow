@@ -16,6 +16,7 @@ process download {
 
     output:
         val "$manifest", emit: manifest
+        val true, emit: done
 
     script:
         """

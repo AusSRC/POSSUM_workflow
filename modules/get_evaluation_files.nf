@@ -9,6 +9,7 @@ nextflow.enable.dsl = 2
 process check {
     input:
         val sbid
+        val ready
 
     output:
         stdout emit: stdout
@@ -66,13 +67,15 @@ process download {
 workflow get_evaluation_files {
     take:
         sbid
+        ready
 
     main:
-        check(sbid)
+        check(sbid, ready)
         download(check.out.stdout)
 
     emit:
         evaluation_files = download.out.evaluation_files
+        done = true
 }
 
 // ----------------------------------------------------------------------------------------
