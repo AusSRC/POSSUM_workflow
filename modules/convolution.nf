@@ -6,80 +6,18 @@ nextflow.enable.dsl = 2
 // Processes
 // ----------------------------------------------------------------------------------------
 
-process split_cube {
-    container = params.HPX_TILING_IMAGE
-    containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
-
-    input:
-        val image_cube
-
-    output:
-        stdout emit: files_str
-
-    script:
-        """
-        # Make working directory
-        [ ! -d ${params.WORKDIR}/sbid_processing/${params.SBID}/${params.ZERO_SPLIT_CUBE_SUBDIR} ] && mkdir -p ${params.WORKDIR}/sbid_processing/${params.SBID}/${params.ZERO_SPLIT_CUBE_SUBDIR}
-
-        export PYTHONPATH='\$PYTHONPATH:${params.CASADATA}'
-
-        python3 -u /app/split_cube.py \
-            -i "$image_cube" \
-            -o "${params.WORKDIR}/sbid_processing/${params.SBID}/${params.ZERO_SPLIT_CUBE_SUBDIR}" \
-            -n ${params.NAN_TO_ZERO_NSPLIT}
-        """
-}
-
-process get_split_cubes {
-    input:
-        val files_str
-
-    output:
-        val subcubes, emit: subcubes
-
-    exec:
-        filenames = files_str.split(',')
-        subcubes = filenames.collect{ it = file("${params.WORKDIR}/sbid_processing/${params.SBID}/${params.ZERO_SPLIT_CUBE_SUBDIR}/$it") }
-}
-
 process pull_racstools_image {
     output:
         val container, emit: container
 
     script:
         container = "${params.SINGULARITY_CACHEDIR}/${params.RACS_TOOLS_IMAGE_NAME}.sif"
-
         """
         #!/bin/bash
 
         # check image exists
         [ ! -f ${container} ] && { singularity pull ${container} ${params.RACS_TOOLS_IMAGE}; }
         exit 0
-        """
-}
-
-process beamcon_2D {
-    input:
-        val image
-        val container
-
-    output:
-        stdout emit: stdout
-
-    script:
-        file = file(image)
-
-        """
-        #!/bin/bash
-
-	    export OMP_NUM_THREADS=1
-        export NUMBA_CACHE_DIR="${params.NUMBA_CACHE_DIR}"
-
-	    singularity exec --bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT} \
-            ${container} \
-            beamcon_2D ${image} \
-            --bmaj ${params.BMAJ} --bmin ${params.BMIN} --bpa ${params.BPA} \
-            -v
         """
 }
 
@@ -91,7 +29,7 @@ process extract_beamlog {
         val evaluation_files
 
     output:
-        stdout emit: stdout
+        val true, emit: done
 
     script:
         """
@@ -107,7 +45,7 @@ process copy_beamlog {
     input:
         val image_cube
         val evaluation_files
-        val extract
+        val check
 
     output:
         val beamlog, emit: beamlog
@@ -131,6 +69,28 @@ process copy_beamlog {
         """
 }
 
+process beamcon_2D {
+    input:
+        val image
+        val container
+
+    output:
+        val true, emit: done
+
+    script:
+        file = file(image)
+        """
+        #!/bin/bash
+
+        export NUMBA_CACHE_DIR="${params.NUMBA_CACHE_DIR}"
+	    singularity exec --bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT} \
+            ${container} \
+            beamcon_2D ${image} \
+            --bmaj ${params.BMAJ} --bmin ${params.BMIN} --bpa ${params.BPA} \
+            -v
+        """
+}
+
 process beamcon_3D {
     input:
         val image_cube
@@ -138,7 +98,7 @@ process beamcon_3D {
         val container
 
     output:
-        stdout emit: stdout
+        val true, emit: done
 
     script:
         file = file(image_cube)
@@ -146,9 +106,7 @@ process beamcon_3D {
         """
         #!/bin/bash
 
-        export OMP_NUM_THREADS=1
         export NUMBA_CACHE_DIR="${params.NUMBA_CACHE_DIR}"
-
         singularity exec --bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT} \
             ${container} \
             beamcon_3D ${image_cube} \
@@ -188,7 +146,7 @@ workflow conv2d {
 
     main:
         beamcon_2D(image_cube, "${params.SINGULARITY_CACHEDIR}/${params.RACS_TOOLS_IMAGE_NAME}.sif")
-        get_cube_conv(image_cube, "${params.BEAMCON_2D_SUFFIX}", beamcon_2D.out.stdout)
+        get_cube_conv(image_cube, "${params.BEAMCON_2D_SUFFIX}", beamcon_2D.out.done)
 
     emit:
         cube_conv = get_cube_conv.out.cube_conv
@@ -202,9 +160,9 @@ workflow conv3d {
 
     main:
         extract_beamlog(evaluation_files)
-        copy_beamlog(cube, evaluation_files, extract_beamlog.out.stdout)
+        copy_beamlog(cube, evaluation_files, extract_beamlog.out.done)
         beamcon_3D(cube, copy_beamlog.out.beamlog, "${params.SINGULARITY_CACHEDIR}/${params.RACS_TOOLS_IMAGE_NAME}.sif")
-        get_cube_conv(cube, "${params.BEAMCON_3D_SUFFIX}", beamcon_3D.out.stdout)
+        get_cube_conv(cube, "${params.BEAMCON_3D_SUFFIX}", beamcon_3D.out.done)
 
     emit:
         cube_conv = get_cube_conv.out.cube_conv

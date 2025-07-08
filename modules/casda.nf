@@ -2,7 +2,7 @@
 
 nextflow.enable.dsl = 2
 
-process download {
+process download_cubes {
     container = params.CASDA_DOWNLOAD_IMAGE
     containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT} --bind /home:/home"
 
@@ -33,11 +33,46 @@ process download {
         """
 }
 
+process download_evaluation_files {
+    container = params.CASDA_DOWNLOAD_IMAGE
+    containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT} --bind /home:/home"
+
+    errorStrategy { sleep(Math.pow(2, task.attempt) * 200 as long); return 'retry' }
+    maxErrors 3
+
+    input:
+        val sbid
+
+    output:
+        val "${params.WORKDIR}/sbid_processing/$sbid/${params.EVALUATION_FILES_DIR}", emit: evaluation_files
+
+    script:
+        """
+        #!/bin/bash
+
+        python3 /app/evaluation_files.py -s $sbid \
+            -p AS203 \
+            -o ${params.WORKDIR}/sbid_processing/$sbid/${params.EVALUATION_FILES_DIR} \
+            -c ${params.CASDA_CREDENTIALS}
+
+        python3 /app/evaluation_files.py \
+            -s $sbid \
+            -p AS202 \
+            -o ${params.WORKDIR}/sbid_processing/$sbid/${params.EVALUATION_FILES_DIR} \
+            -c ${params.CASDA_CREDENTIALS}
+
+        python3 /app/evaluation_files.py \
+            -s $sbid \
+            -p AS201 \
+            -o ${params.WORKDIR}/sbid_processing/$sbid/${params.EVALUATION_FILES_DIR} \
+            -c ${params.CASDA_CREDENTIALS}
+        """
+}
+
 import groovy.json.JsonSlurper
 process parse_possum_manifest {
     input:
         val manifest
-        val ready
 
     output:
         val i_file, emit: i_file
@@ -83,7 +118,6 @@ process parse_possum_manifest {
         if (weights_file == null) {
             throw new Exception("weights file is not found")
         }
-
 }
 
 process parse_emu_manifest {

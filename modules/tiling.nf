@@ -143,53 +143,33 @@ process repair_tiles {
 // Workflows
 // ----------------------------------------------------------------------------------------
 
-workflow split_casa_tiling {
-    take:
-        obs_id
-        image_cube
-        pixel_map
-        stokes
-
-    main:
-        split_cube(image_cube, stokes)
-
-        get_split_cubes(split_cube.out.files_str, stokes)
-
-        run_hpx_tiling(obs_id,
-                       get_split_cubes.out.subcubes.flatten(),
-                       pixel_map,
-                       stokes,
-                       "survey")
-
-        get_unique_pixel_ids(run_hpx_tiling.out.image_cube_out.collect(),
-                             obs_id,
-                             stokes)
-
-        join_split_hpx_tiles(get_unique_pixel_ids.out.pixel_id.flatten(),
-                             obs_id,
-                             stokes)
-
-        repair_tiles(join_split_hpx_tiles.out.ready.collect(),
-                     obs_id,
-                     stokes)
-
-    emit:
-        ready = repair_tiles.out.ready
-}
-
 workflow split_tiling {
     take:
-        sbid
         obs_id
         image_cube
         tile_map
         stokes
 
     main:
-        split_casa_tiling(obs_id, image_cube, tile_map, stokes)
+        split_cube(image_cube, stokes)
+        get_split_cubes(split_cube.out.files_str, stokes)
+        run_hpx_tiling(obs_id,
+                       get_split_cubes.out.subcubes.flatten(),
+                       tile_map,
+                       stokes,
+                       "survey")
+        get_unique_pixel_ids(run_hpx_tiling.out.image_cube_out.collect(),
+                             obs_id,
+                             stokes)
+        join_split_hpx_tiles(get_unique_pixel_ids.out.pixel_id.flatten(),
+                             obs_id,
+                             stokes)
+        repair_tiles(join_split_hpx_tiles.out.ready.collect(),
+                     obs_id,
+                     stokes)
 
     emit:
-        ready = split_casa_tiling.out.ready
+        ready = repair_tiles.out.ready
 }
 
 workflow tiling {

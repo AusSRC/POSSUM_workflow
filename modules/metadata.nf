@@ -2,21 +2,6 @@
 
 nextflow.enable.dsl = 2
 
-process process_pixel_map {
-    executor = 'local'
-    debug true
-
-    input:
-	val ready
-        val pixel
-
-    output:
-        val pixel_stokes_list, emit: pixel_stokes_list_out
-
-    exec:
-        pixel_stokes_list = pixel.getValue()
-}
-
 process get_component_files {
     executor = 'local'
     debug true
@@ -87,6 +72,10 @@ process compress {
         gzip -f $files
         """
 }
+
+// ----------------------------------------------------------------------------------------
+// Workflows
+// ----------------------------------------------------------------------------------------
 
 workflow provenance {
     take:
