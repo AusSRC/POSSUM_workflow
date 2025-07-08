@@ -107,6 +107,17 @@ process generate_tile_map {
         """
 }
 
+process get_tile_map {
+    input:
+        val ready
+
+    output:
+        val pixel_map_csv, emit: pixel_map_csv
+
+    exec:
+        pixel_map_csv = file("${params.WORKDIR}/sbid_processing/${params.SBID}/*.csv").first()
+}
+
 // ----------------------------------------------------------------------------------------
 // Workflows
 // ----------------------------------------------------------------------------------------
@@ -128,10 +139,11 @@ workflow hpx_tile_map {
             select_hpx_tile_config.out.hpx_tile_config,
             get_obs_id.out.obs_id
         )
+        get_tile_map(generate_tile_map.out.done)
 
     emit:
         obs_id = get_obs_id.out.obs_id
-        tile_map = file("${params.WORKDIR}/sbid_processing/$sbid/*.csv").first()
+        tile_map = get_tile_map.out.pixel_map_csv
 }
 
 // ----------------------------------------------------------------------------------------
