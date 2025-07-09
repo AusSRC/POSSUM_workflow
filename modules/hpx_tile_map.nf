@@ -40,8 +40,9 @@ process get_obs_id {
         val obs_id, emit: obs_id
 
     exec:
-        filename = file(image_cube).getBaseName()
-        (_, _, obs_id, _) = (filename =~ /(\S*)_(\d{4}-\d{2}[AB]?)(\S*)$/)[0]
+        filename = file(image_cube).getBaseName();
+        obs = filename.split('\\.')[3];
+        obs_id = obs.split('\\_')[1].replace('\n', '');
 }
 
 process get_footprint_file {
