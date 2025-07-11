@@ -102,10 +102,8 @@ process beamcon_3D {
 
     script:
         file = file(image_cube)
-
         """
         #!/bin/bash
-
         export NUMBA_CACHE_DIR="${params.NUMBA_CACHE_DIR}"
         singularity exec --bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT} \
             ${container} \
@@ -119,12 +117,26 @@ process beamcon_3D {
             --executor_type process \
             -vvv
         """
+
+}
+
+process conv_cube_exists {
+    input:
+        val image_cube
+
+    output:
+        val exists, emit: exists
+        val true, emit: done
+
+    exec:
+        cube = file(image_cube)
+        empty = file("${cube.getParent()}/${cube.getBaseName()}*${params.BEAMCON_3D_SUFFIX}*${cube.getExtension()}").empty
+        exists = !empty
 }
 
 process get_cube_conv {
     input:
         val image_cube
-        val suffix
         val check
 
     output:
@@ -132,7 +144,7 @@ process get_cube_conv {
 
     exec:
         cube = file(image_cube)
-        cube_conv = file("${cube.getParent()}/${cube.getBaseName()}*${suffix}*${cube.getExtension()}").first()
+        cube_conv = file("${cube.getParent()}/${cube.getBaseName()}*${params.BEAMCON_3D_SUFFIX}*${cube.getExtension()}").first()
 }
 
 // ----------------------------------------------------------------------------------------
@@ -159,10 +171,17 @@ workflow conv3d {
         stokes
 
     main:
-        extract_beamlog(evaluation_files)
-        copy_beamlog(cube, evaluation_files, extract_beamlog.out.done)
-        beamcon_3D(cube, copy_beamlog.out.beamlog, "${params.SINGULARITY_CACHEDIR}/${params.RACS_TOOLS_IMAGE_NAME}.sif")
-        get_cube_conv(cube, "${params.BEAMCON_3D_SUFFIX}", beamcon_3D.out.done)
+        // Check if convolved cube exists before running
+        conv_cube_exists(cube)
+        if ( conv_cube_exists.out.exists ) {
+            println "convolved cube exists, skipping"
+            get_cube_conv(cube, conv_cube_exists.out.done)
+        } else {
+            extract_beamlog(evaluation_files)
+            copy_beamlog(cube, evaluation_files, extract_beamlog.out.done)
+            beamcon_3D(cube, copy_beamlog.out.beamlog, "${params.SINGULARITY_CACHEDIR}/${params.RACS_TOOLS_IMAGE_NAME}.sif")
+            get_cube_conv(cube, beamcon_3D.out.done)
+        }
 
     emit:
         cube_conv = get_cube_conv.out.cube_conv

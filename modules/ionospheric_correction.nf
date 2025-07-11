@@ -115,6 +115,24 @@ process frion_correct {
         """
 }
 
+process frion_corr_cubes_exist {
+    input:
+        val q_cube
+        val u_cube
+
+    output:
+        val exists, emit: exists
+        val q_cube_corr, emit: q_cube_corr
+        val u_cube_corr, emit: u_cube_corr
+
+    exec:
+        q_cube_corr = "${params.WORKDIR}/sbid_processing/${params.SBID}/${params.FRION_Q_CUBE_FILENAME}"
+        u_cube_corr = "${params.WORKDIR}/sbid_processing/${params.SBID}/${params.FRION_U_CUBE_FILENAME}"
+        q_corr_exists = new File(q_cube_corr).exists();
+        u_corr_exists = new File(u_cube_corr).exists();
+        exists = q_corr_exists && u_corr_exists;
+}
+
 // ----------------------------------------------------------------------------------------
 // Workflow
 // ----------------------------------------------------------------------------------------
@@ -131,14 +149,23 @@ workflow ionospheric_correction {
         u_cube
 
     main:
-        observation_start_time(q_cube)
-        observation_end_time(q_cube)
-        frion_predict(q_cube, observation_start_time.out.time, observation_end_time.out.time)
-        frion_correct(q_cube, u_cube, frion_predict.out.file)
+        frion_corr_cubes_exist(q_cube, u_cube)
+        if ( frion_corr_cubes_exist.out.exists) {
+            println "ionospheric corrected cubes exist, skipping"
+            q_cube_corr = frion_corr_cubes_exist.out.q_cube_corr
+            u_cube_corr = frion_corr_cubes_exist.out.u_cube_corr
+        } else {
+            observation_start_time(q_cube)
+            observation_end_time(q_cube)
+            frion_predict(q_cube, observation_start_time.out.time, observation_end_time.out.time)
+            frion_correct(q_cube, u_cube, frion_predict.out.file)
+            q_cube_corr = frion_correct.out.q_cube_output
+            u_cube_corr = frion_correct.out.u_cube_output
+        }
 
     emit:
-        q_cube_corr = frion_correct.out.q_cube_output
-        u_cube_corr = frion_correct.out.u_cube_output
+        q_cube_corr
+        u_cube_corr
 }
 
 // ----------------------------------------------------------------------------------------
