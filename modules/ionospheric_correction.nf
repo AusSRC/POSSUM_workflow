@@ -150,7 +150,7 @@ workflow ionospheric_correction {
 
     main:
         frion_corr_cubes_exist(q_cube, u_cube)
-        if ( frion_corr_cubes_exist.out.exists) {
+        if ( frion_corr_cubes_exist.out.exists == true ) {
             println "ionospheric corrected cubes exist, skipping"
             q_cube_corr = frion_corr_cubes_exist.out.q_cube_corr
             u_cube_corr = frion_corr_cubes_exist.out.u_cube_corr
