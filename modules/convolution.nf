@@ -173,7 +173,7 @@ workflow conv3d {
     main:
         // Check if convolved cube exists before running
         conv_cube_exists(cube)
-        if ( conv_cube_exists.out.exists ) {
+        if ( conv_cube_exists.out.exists == true ) {
             println "convolved cube exists, skipping"
             get_cube_conv(cube, conv_cube_exists.out.done)
         } else {
