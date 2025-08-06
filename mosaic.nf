@@ -4,7 +4,6 @@ nextflow.enable.dsl = 2
 
 include { mosaicking } from './modules/mosaicking'
 include { get_pixel_set } from './modules/get_complete_tiles'
-include { download_containers } from './modules/singularity'
 include { objectstore_download_component; objectstore_upload_pixel } from './modules/objectstore'
 
 workflow {
@@ -17,11 +16,8 @@ workflow {
     csv_out = "${params.WORKDIR}/config/${tile_id}.${band}.map.json"
 
     main:
-        download_containers()
-
         // Fetch from acacia if not on scratch
         objectstore_download_component(
-            download_containers.out.ready,
             tile_id,
             obs_ids,
             component_dir,

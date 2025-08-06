@@ -232,7 +232,8 @@ process run_linmos_mpi {
         def image_file = mosaic_files[0]
         """
         #!/bin/bash
-
+        unset SLURM_MEM_PER_CPU
+        unset SLURM_MEM_PER_NODE
         export OMP_NUM_THREADS=4
         if ! test -f $image_file; then
             srun -n 6 singularity exec \
