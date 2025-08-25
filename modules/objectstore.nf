@@ -43,7 +43,8 @@ process objectstore_download_component {
         obs_ids="${obs_ids}"
         for obs_id in \$obs_ids
         do
-            rclone --s3-chunk-size=128M --progress copy -u --ignore-checksum --include="*${tile_id}*" "pawsey0980:possum/components/\$obs_id/${survey_component}" "${component_dir}/\$obs_id/${survey_component}"
+            rclone --s3-chunk-size=128M --progress copy -u --ignore-checksum --include="*${tile_id}*" "pawsey0980:possum/components/\$obs_id/${survey_component}" "${component_dir}/\$obs_id/${survey_component}" && \
+            gunzip -r ${component_dir}/\$obs_id/${survey_component}
         done
         """
 }
