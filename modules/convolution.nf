@@ -137,6 +137,7 @@ process conv_cube_exists {
 process get_cube_conv {
     input:
         val image_cube
+        val suffix
         val check
 
     output:
@@ -144,7 +145,7 @@ process get_cube_conv {
 
     exec:
         cube = file(image_cube)
-        cube_conv = file("${cube.getParent()}/${cube.getBaseName()}*${params.BEAMCON_3D_SUFFIX}*${cube.getExtension()}").first()
+        cube_conv = file("${cube.getParent()}/${cube.getBaseName()}*$suffix*${cube.getExtension()}").first()
 }
 
 // ----------------------------------------------------------------------------------------
@@ -175,12 +176,12 @@ workflow conv3d {
         conv_cube_exists(cube)
         if ( conv_cube_exists.out.exists == true ) {
             println "convolved cube exists, skipping"
-            get_cube_conv(cube, conv_cube_exists.out.done)
+            get_cube_conv(cube, "${params.BEAMCON_3D_SUFFIX}", conv_cube_exists.out.done)
         } else {
             extract_beamlog(evaluation_files)
             copy_beamlog(cube, evaluation_files, extract_beamlog.out.done)
             beamcon_3D(cube, copy_beamlog.out.beamlog, "${params.SINGULARITY_CACHEDIR}/${params.RACS_TOOLS_IMAGE_NAME}.sif")
-            get_cube_conv(cube, beamcon_3D.out.done)
+            get_cube_conv(cube, "${params.BEAMCON_3D_SUFFIX}", beamcon_3D.out.done)
         }
 
     emit:

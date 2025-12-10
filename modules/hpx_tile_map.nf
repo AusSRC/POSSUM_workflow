@@ -42,6 +42,10 @@ process get_obs_id {
     exec:
         filename = file(image_cube).getBaseName();
         obs = filename.split('\\.')[3];
+        // Handle MFS image filename convention
+        if (obs.startsWith('SB')) {
+            obs = filename.split('\\.')[2];
+        }
         obs_id = obs.split('\\_')[1].replace('\n', '');
 }
 

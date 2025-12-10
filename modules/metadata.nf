@@ -58,6 +58,38 @@ process add_history_to_fits_header {
         """
 }
 
+process header_float_values {
+    container = params.METADATA_IMAGE
+    containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
+    debug true
+
+    input:
+        val files
+        val sbid
+        val obs_id
+        val subdir
+        val stokes
+
+    output:
+        val true, emit: ready
+
+    script:
+        """
+        #!/bin/bash
+
+        python3 /app/fits_history.py \
+            -f $files -v \
+            "AusSRC POSSUM pipeline START" \
+            "$obs_id" \
+            "$sbid" \
+            "${workflow.repository} - ${workflow.revision} [${workflow.commitId}]" \
+            "${workflow.commandLine}" \
+            "${workflow.start}" \
+            "Austin Shen (austin.shen@csiro.au)" \
+            "AusSRC POSSUM pipeline END" \
+        """
+}
+
 process compress {
     input:
         val files
