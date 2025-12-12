@@ -208,7 +208,8 @@ process run_linmos {
         def image_file = mosaic_files[0]
         """
         #!/bin/bash
-
+        unset SLURM_MEM_PER_CPU
+        unset SLURM_MEM_PER_NODE
         export OMP_NUM_THREADS=4
         if ! test -f $image_file; then
             singularity exec \
@@ -256,6 +257,7 @@ workflow mosaicking {
 
     main:
         generate_linmos_config(pixel_stokes_config, survey_component)
+        generate_linmos_config.out.mosaic_files_in.view()
 
         if (survey_component == 'mfs') {
             run_linmos(
@@ -268,13 +270,11 @@ workflow mosaicking {
 
         // Flip axes to [ra, dec, pol, freq] for linmos MPI
         else {
-            generate_linmos_config.out.mosaic_files_in.view()
             run_linmos_mpi(
                 generate_linmos_config.out.linmos_conf_out,
                 generate_linmos_config.out.linmos_log_conf_out,
                 generate_linmos_config.out.mosaic_files_out
             )
-            run_linmos_mpi.out.mosaic_files.flatten().view()
             flip_to_freq_pol(run_linmos_mpi.out.mosaic_files.flatten().unique())
             mosaic_files = flip_to_freq_pol.out.image_cor.collect()
         }
