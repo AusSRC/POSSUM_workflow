@@ -195,11 +195,47 @@ process flip_to_freq_pol {
         """
 }
 
+
+/*
+Linmos requires fits header cards CRPIX, CRVAL, CDELT to be floats. This process converts to float where
+it has been stored as a string.
+*/
+
+process fix_string_header {
+    container = params.METADATA_IMAGE
+    containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
+
+    input:
+        val image_cube
+
+    output:
+        val true, emit: done
+
+    script:
+        """
+        #!python3
+        import os
+        from astropy.io import fits
+        headers = ['CRPIX', 'CRVAL', 'CDELT']
+        filename = '${image_cube}.fits'
+        assert os.path.exists(filename), 'File does not exist'
+        with fits.open(filename, mode='update') as hdul:
+            header = hdul[0].header
+            naxis = header['NAXIS']
+            for i in range(naxis):
+                for prefix in headers:
+                    card = '%s%i' % (prefix, i+1)
+                    header[card] = float(header[card])
+            hdul.flush()
+        """
+}
+
 process run_linmos {
     input:
         val linmos_conf
         val linmos_log_conf
         val mosaic_files
+        val ready
 
     output:
         val mosaic_files, emit: mosaic_files
@@ -225,6 +261,7 @@ process run_linmos_mpi {
         val linmos_conf
         val linmos_log_conf
         val mosaic_files
+        val ready
 
     output:
         val mosaic_files, emit: mosaic_files
@@ -257,13 +294,14 @@ workflow mosaicking {
 
     main:
         generate_linmos_config(pixel_stokes_config, survey_component)
-        generate_linmos_config.out.mosaic_files_in.view()
+        fix_string_header(generate_linmos_config.out.mosaic_files_in.flatten())
 
         if (survey_component == 'mfs') {
             run_linmos(
                 generate_linmos_config.out.linmos_conf_out,
                 generate_linmos_config.out.linmos_log_conf_out,
                 generate_linmos_config.out.mosaic_files_out,
+                fix_string_header.out.done.collect()
             )
             mosaic_files = run_linmos.out.mosaic_files
         }
@@ -273,7 +311,8 @@ workflow mosaicking {
             run_linmos_mpi(
                 generate_linmos_config.out.linmos_conf_out,
                 generate_linmos_config.out.linmos_log_conf_out,
-                generate_linmos_config.out.mosaic_files_out
+                generate_linmos_config.out.mosaic_files_out,
+                fix_string_header.out.done.collect()
             )
             flip_to_freq_pol(run_linmos_mpi.out.mosaic_files.flatten().unique())
             mosaic_files = flip_to_freq_pol.out.image_cor.collect()
