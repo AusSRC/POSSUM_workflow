@@ -120,6 +120,9 @@ Completed (mosaicked) tiles need to have their axes order flipped back to [ra, d
 */
 
 process flip_to_pol_freq {
+    errorStrategy { sleep(10); return 'retry' }
+    maxRetries 3
+
     container = params.METADATA_IMAGE
     containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
 
