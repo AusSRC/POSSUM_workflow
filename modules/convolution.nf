@@ -6,21 +6,6 @@ nextflow.enable.dsl = 2
 // Processes
 // ----------------------------------------------------------------------------------------
 
-process pull_racstools_image {
-    output:
-        val container, emit: container
-
-    script:
-        container = "${params.SINGULARITY_CACHEDIR}/${params.RACS_TOOLS_IMAGE_NAME}.sif"
-        """
-        #!/bin/bash
-
-        # check image exists
-        [ ! -f ${container} ] && { singularity pull ${container} ${params.RACS_TOOLS_IMAGE}; }
-        exit 0
-        """
-}
-
 process extract_beamlog {
     container = params.METADATA_IMAGE
     containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
@@ -72,20 +57,15 @@ process copy_beamlog {
 process beamcon_2D {
     input:
         val image
-        val container
 
     output:
         val true, emit: done
 
     script:
-        file = file(image)
         """
         #!/bin/bash
-
-        export NUMBA_CACHE_DIR="${params.NUMBA_CACHE_DIR}"
-	    singularity exec --bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT} \
-            ${container} \
-            beamcon_2D ${image} \
+        source ${params.SOFTWARE_DIR}/venv/bin/activate
+        beamcon_2D ${image} \
             --bmaj ${params.BMAJ} --bmin ${params.BMIN} --bpa ${params.BPA} \
             -v
         """
@@ -95,26 +75,20 @@ process beamcon_3D {
     input:
         val image_cube
         val beamlog
-        val container
 
     output:
         val true, emit: done
 
     script:
-        file = file(image_cube)
         """
         #!/bin/bash
-        export NUMBA_CACHE_DIR="${params.NUMBA_CACHE_DIR}"
-        singularity exec --bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT} \
-            ${container} \
-            beamcon_3D ${image_cube} \
-            --mode total \
+        source ${params.SOFTWARE_DIR}/venv/bin/activate
+        beamcon_3D ${image_cube} \
+            --mode total --suffix ${params.BEAMCON_3D_SUFFIX} \
             --conv_mode robust \
-            --suffix ${params.BEAMCON_3D_SUFFIX} \
             --bmaj ${params.BMAJ} --bmin ${params.BMIN} --bpa ${params.BPA} \
             --cutoff ${params.CUTOFF} \
-            --ncores 8 \
-            --executor_type process \
+            --ncores 8 --executor_type process \
             -vvv
         """
 
@@ -158,7 +132,7 @@ workflow conv2d {
         stokes
 
     main:
-        beamcon_2D(image_cube, "${params.SINGULARITY_CACHEDIR}/${params.RACS_TOOLS_IMAGE_NAME}.sif")
+        beamcon_2D(image_cube)
         get_cube_conv(image_cube, "${params.BEAMCON_2D_SUFFIX}", beamcon_2D.out.done)
 
     emit:
@@ -180,7 +154,7 @@ workflow conv3d {
         } else {
             extract_beamlog(evaluation_files)
             copy_beamlog(cube, evaluation_files, extract_beamlog.out.done)
-            beamcon_3D(cube, copy_beamlog.out.beamlog, "${params.SINGULARITY_CACHEDIR}/${params.RACS_TOOLS_IMAGE_NAME}.sif")
+            beamcon_3D(cube, copy_beamlog.out.beamlog)
             get_cube_conv(cube, "${params.BEAMCON_3D_SUFFIX}", beamcon_3D.out.done)
         }
 
