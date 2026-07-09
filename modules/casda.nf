@@ -23,7 +23,7 @@ process download_cubes {
         #!/bin/bash
 
         if [ ! -f "$manifest" ]; then
-            python3 -u /app/casda_download.py \
+            python3 -u /software/projects/ja3/ashen/pipeline_components/casda_download/casda_download.py \
                 -s $sbid \
                 -o ${params.WORKDIR}/sbid_processing/$sbid \
                 -c ${params.CASDA_CREDENTIALS} \
