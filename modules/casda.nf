@@ -19,11 +19,13 @@ process download_cubes {
         val true, emit: done
 
     script:
+	script_dir = "/software/projects/ja3/ashen/pipeline_components/casda_download"
+
         """
         #!/bin/bash
 
         if [ ! -f "$manifest" ]; then
-            python3 -u /software/projects/ja3/ashen/pipeline_components/casda_download/casda_download.py \
+            python3 -u $script_dir/casda_download.py \
                 -s $sbid \
                 -o ${params.WORKDIR}/sbid_processing/$sbid \
                 -c ${params.CASDA_CREDENTIALS} \
@@ -47,21 +49,23 @@ process download_evaluation_files {
         val "${params.WORKDIR}/sbid_processing/$sbid/${params.EVALUATION_FILES_DIR}", emit: evaluation_files
 
     script:
+	script_dir = "/software/projects/ja3/ashen/pipeline_components/casda_download"
+
         """
         #!/bin/bash
 
-        python3 /app/evaluation_files.py -s $sbid \
+        python3 $script_dir/evaluation_files.py -s $sbid \
             -p AS203 \
             -o ${params.WORKDIR}/sbid_processing/$sbid/${params.EVALUATION_FILES_DIR} \
             -c ${params.CASDA_CREDENTIALS}
 
-        python3 /app/evaluation_files.py \
+        python3 $script_dir/evaluation_files.py \
             -s $sbid \
             -p AS202 \
             -o ${params.WORKDIR}/sbid_processing/$sbid/${params.EVALUATION_FILES_DIR} \
             -c ${params.CASDA_CREDENTIALS}
 
-        python3 /app/evaluation_files.py \
+        python3 $script_dir/evaluation_files.py \
             -s $sbid \
             -p AS201 \
             -o ${params.WORKDIR}/sbid_processing/$sbid/${params.EVALUATION_FILES_DIR} \
