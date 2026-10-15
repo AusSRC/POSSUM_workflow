@@ -2,6 +2,7 @@
 
 nextflow.enable.dsl = 2
 
+include { download_containers } from './pipeline_components/nextflow/modules/singularity'
 include { mosaicking } from './modules/mosaicking'
 include { get_pixel_set } from './modules/get_complete_tiles'
 include { objectstore_download_component; objectstore_upload_pixel } from './modules/objectstore'
@@ -16,6 +17,9 @@ workflow {
     csv_out = "${params.WORKDIR}/config/${tile_id}.${band}.map.json"
 
     main:
+        // linmos is run from the singularity image directly, so it needs to be in the cache
+        download_containers([params.ASKAPSOFT_IMAGE])
+
         // Fetch from acacia if not on scratch
         objectstore_download_component(
             tile_id,
@@ -24,7 +28,11 @@ workflow {
             survey_component
         )
 
-        // Run mosaicking
+        // Run mosaicking once the components and the linmos container are downloaded
+        ready = objectstore_download_component.out.stdout
+            .combine(download_containers.out.ready)
+            .map { true }
+
         get_pixel_set(
             tile_id,
             obs_ids,
@@ -33,7 +41,7 @@ workflow {
             component_dir,
             tile_dir,
             csv_out,
-            objectstore_download_component.out.stdout
+            ready
         )
         mosaicking(
             get_pixel_set.out.pixel_map.flatMap(),

@@ -2,7 +2,7 @@
 
 nextflow.enable.dsl = 2
 
-include { download_cubes; download_evaluation_files; parse_possum_manifest; } from "./modules/casda.nf"
+include { download_possum; evaluation_files } from './modules/casda'
 include {
     conv3d as conv_i;
     conv3d as conv_q;
@@ -37,26 +37,25 @@ workflow {
 
     main:
         // Downloads (image cubes, evaluation files, beamlog)
-        download_cubes(sbid, "POSSUM", "${params.WORKDIR}/sbid_processing/$sbid/${sbid}.json")
-        download_evaluation_files(sbid)
-        parse_possum_manifest(download_cubes.out.manifest)
+        download_possum(sbid)
+        evaluation_files(sbid)
 
         // Common beam convolution
-        conv_i(parse_possum_manifest.out.i_file, download_evaluation_files.out.evaluation_files, "i")
-        conv_q(parse_possum_manifest.out.q_file, download_evaluation_files.out.evaluation_files, "q")
-        conv_u(parse_possum_manifest.out.u_file, download_evaluation_files.out.evaluation_files, "u")
+        conv_i(download_possum.out.i_file, evaluation_files.out.evaluation_files, "i")
+        conv_q(download_possum.out.q_file, evaluation_files.out.evaluation_files, "q")
+        conv_u(download_possum.out.u_file, evaluation_files.out.evaluation_files, "u")
 
         // Ionospheric correction
         ionospheric_correction(conv_q.out.cube_conv, conv_u.out.cube_conv)
 
         // Produce tile map
-        hpx_tile_map(sbid, conv_i.out.cube_conv, download_evaluation_files.out.evaluation_files, band)
+        hpx_tile_map(sbid, conv_i.out.cube_conv, evaluation_files.out.evaluation_files, band)
 
         // Tiling
         tile_i(hpx_tile_map.out.obs_id, conv_i.out.cube_conv, hpx_tile_map.out.tile_map, 'i')
         tile_q(hpx_tile_map.out.obs_id, ionospheric_correction.out.q_cube_corr, hpx_tile_map.out.tile_map, 'q')
         tile_u(hpx_tile_map.out.obs_id, ionospheric_correction.out.u_cube_corr, hpx_tile_map.out.tile_map, 'u')
-        tile_w(hpx_tile_map.out.obs_id, parse_possum_manifest.out.weights_file, hpx_tile_map.out.tile_map, 'w')
+        tile_w(hpx_tile_map.out.obs_id, download_possum.out.weights_file, hpx_tile_map.out.tile_map, 'w')
 
         // Metadata
         provenance_i(sbid, hpx_tile_map.out.obs_id, "survey", "i", tile_i.out.ready)

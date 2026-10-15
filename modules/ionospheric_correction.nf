@@ -7,7 +7,7 @@ nextflow.enable.dsl = 2
 // ----------------------------------------------------------------------------------------
 
 process observation_start_time {
-    container = params.METADATA_IMAGE
+    container = params.AUSSRC_PIPELINE_COMPONENTS_IMAGE
     containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
 
     input:
@@ -28,7 +28,7 @@ process observation_start_time {
 }
 
 process observation_end_time {
-    container = params.METADATA_IMAGE
+    container = params.AUSSRC_PIPELINE_COMPONENTS_IMAGE
     containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
 
     input:
@@ -58,7 +58,7 @@ process observation_end_time {
 // Generate predict
 process frion_predict {
     container = params.IONOSPHERIC_CORRECTION_IMAGE
-    containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT} --bind /home:/home"
+    containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT} --bind \$HOME:\$HOME"
 
     input:
         val q_cube

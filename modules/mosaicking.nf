@@ -2,73 +2,39 @@
 
 nextflow.enable.dsl = 2
 
+include { linmos_config; linmos; linmos_mpi } from '../pipeline_components/nextflow/modules/linmos'
+
 // ----------------------------------------------------------------------------------------
-// Processes
+// Functions
 // ----------------------------------------------------------------------------------------
 
-process generate_linmos_config {
-    executor = 'local'
-    container = params.CASDA_DOWNLOAD_IMAGE
-    containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
+// Describe the mosaic of one Stokes parameter of a HEALPix pixel (tile) as a job for the
+// linmos module in pipeline_components. The pixel_stokes_config has the format
+//      {
+//          pixel=11400,
+//          band=1,
+//          stokes=i,
+//          input=[
+//              [PSM.0954-55.11400.i, PSM.1017-60.11400.i, PSM.1029-55.11400.i, PSM.1058-60.11400.i],
+//              [PSM.0954-55.11400.w, PSM.1017-60.11400.w, PSM.1029-55.11400.w, PSM.1058-60.11400.w]],
+//          output=[POSSUM.band1.1017-60_1029-55_0954-55_1058-60.11400.i, POSSUM.band1.1017-60_1029-55_0954-55_1058-60.11400.w]
+//      }
+// The weights are only written for the Stokes I mosaic, since they are the same for Q and U.
+def possum_job(pixel_stokes_config, survey_component) {
+    def pixel = pixel_stokes_config.pixel
+    def band = pixel_stokes_config.band
+    def stokes = pixel_stokes_config.stokes
+    def (images, weights) = pixel_stokes_config.input
+    def (image_out, weights_out) = pixel_stokes_config.output
 
-    /* Expects input object "pixel_stokes_config" with the following format
-        i = {
-            pixel=11400,
-            band=1,
-            stokes=i,
-            input=[
-                [PSM.0954-55.11400.i, PSM.1017-60.11400.i, PSM.1029-55.11400.i, PSM.1058-60.11400.i],
-                [PSM.0954-55.11400.w, PSM.1017-60.11400.w, PSM.1029-55.11400.w, PSM.1058-60.11400.w]],
-            output=[POSSUM.band1.1017-60_1029-55_0954-55_1058-60.11400.i, POSSUM.band1.1017-60_1029-55_0954-55_1058-60.11400.w]
-        }
-    */
-
-    input:
-        val pixel_stokes_config
-        val survey_component
-
-    output:
-        val linmos_conf, emit: linmos_conf_out
-        val linmos_log_conf, emit: linmos_log_conf_out
-        val input_files, emit: mosaic_files_in
-        val output_files, emit: mosaic_files_out
-
-    script:
-        def v = pixel_stokes_config.getValue()
-        def stokes = v.get('stokes')
-        def pixel = v.get('pixel')
-        def band = v.get('band')
-
-        input_files = v.get('input')
-        output_files = v.get('output')
-        linmos_conf = "${params.WORKDIR}/tile_processing/" + pixel + "/linmos_" + survey_component + "_" + band + "_" + stokes + ".conf"
-        linmos_log_conf = "${params.WORKDIR}/tile_processing/" + pixel + "/linmos_" + survey_component + "_" + band + "_" + stokes + ".log_cfg"
-
-        """
-        #!python3
-
-        import os
-        import json
-        from jinja2 import Environment, FileSystemLoader
-        from pathlib import Path
-
-        img = [${input_files[0].collect{"\"${it}\""}.join(",")}]
-        wgt = [${input_files[1].collect{"\"${it}\""}.join(",")}]
-
-        images = [Path(image) for image in img]
-        weights = [Path(weight) for weight in wgt]
-        images.sort()
-        weights.sort()
-
-        image_out = Path('${output_files[0]}')
-        weight_out = Path('${output_files[1]}')
-        log = Path('${linmos_log_conf}.txt')
-
-        stokes = str('${stokes}')
-        if stokes != 'i':
-            weight_out = ''
-
-        image_history = [
+    return [
+        name: "${pixel}.${stokes}",
+        images: images.sort(),
+        weights: weights.sort(),
+        image_out: image_out,
+        weights_out: stokes == 'i' ? weights_out : '',
+        config: "${params.WORKDIR}/tile_processing/${pixel}/linmos_${survey_component}_${band}_${stokes}.conf",
+        history: [
             "AusSRC POSSUM pipeline tile mosaicking START",
             "${workflow.repository} - ${workflow.revision} [${workflow.commitId}]",
             "${workflow.commandLine}",
@@ -76,42 +42,12 @@ process generate_linmos_config {
             "Austin Shen (austin.shen@csiro.au)",
             "AusSRC POSSUM pipeline tile mosaicking END"
         ]
-
-        j2_env = Environment(loader=FileSystemLoader('$baseDir/templates'), trim_blocks=True)
-        result = j2_env.get_template('linmos.j2').render( \
-            images=images, weights=weights, \
-            image_out=image_out, weight_out=weight_out, image_history=image_history \
-        )
-
-        try:
-            os.makedirs(os.path.dirname('${linmos_conf}'))
-        except:
-            pass
-
-        try:
-            os.makedirs(os.path.dirname('${linmos_log_conf}'))
-        except:
-            pass
-
-        try:
-            os.makedirs(os.path.dirname('${output_files[0]}'))
-        except:
-            pass
-
-        try:
-            os.makedirs(os.path.dirname('${output_files[1]}'))
-        except:
-            pass
-
-        with open('${linmos_conf}', 'w') as f:
-            print(result, file=f)
-
-        result = j2_env.get_template('log_template.j2').render(log=log)
-
-        with open('${linmos_log_conf}', 'w') as f:
-            print(result, file=f)
-        """
+    ]
 }
+
+// ----------------------------------------------------------------------------------------
+// Processes
+// ----------------------------------------------------------------------------------------
 
 /*
 Script for flipping frequency and polarisation axes on data cubes. This code snippet is required
@@ -123,7 +59,7 @@ process flip_to_pol_freq {
     errorStrategy { sleep(10); return 'retry' }
     maxRetries 3
 
-    container = params.METADATA_IMAGE
+    container = params.AUSSRC_PIPELINE_COMPONENTS_IMAGE
     containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
 
     input:
@@ -161,7 +97,7 @@ process flip_to_pol_freq {
 }
 
 process flip_to_freq_pol {
-    container = params.METADATA_IMAGE
+    container = params.AUSSRC_PIPELINE_COMPONENTS_IMAGE
     containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
 
     input:
@@ -204,7 +140,7 @@ it has been stored as a string.
 */
 
 process fix_string_header {
-    container = params.METADATA_IMAGE
+    container = params.AUSSRC_PIPELINE_COMPONENTS_IMAGE
     containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
 
     input:
@@ -233,57 +169,6 @@ process fix_string_header {
         """
 }
 
-process run_linmos {
-    input:
-        val linmos_conf
-        val mosaic_files
-        val ready
-
-    output:
-        val mosaic_files, emit: mosaic_files
-
-    script:
-        def image_file = mosaic_files[0]
-        """
-        #!/bin/bash
-        unset SLURM_MEM_PER_CPU
-        unset SLURM_MEM_PER_NODE
-        export OMP_NUM_THREADS=4
-        if ! test -f $image_file; then
-            singularity exec \
-                --bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT} \
-                ${params.SINGULARITY_CACHEDIR}/${params.LINMOS_IMAGE_NAME}.img \
-                linmos -c $linmos_conf
-        fi
-        """
-}
-
-process run_linmos_mpi {
-    input:
-        val linmos_conf
-        val mosaic_files
-        val ready
-
-    output:
-        val mosaic_files, emit: mosaic_files
-
-    script:
-        def image_file = mosaic_files[0]
-        """
-        #!/bin/bash
-        unset SLURM_MEM_PER_CPU
-        unset SLURM_MEM_PER_NODE
-        export OMP_NUM_THREADS=4
-        if ! test -f $image_file; then
-            srun -n 6 singularity exec \
-                --bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT} \
-                ${params.SINGULARITY_CACHEDIR}/${params.LINMOS_IMAGE_NAME}.img \
-                linmos-mpi -c $linmos_conf
-        fi
-        """
-}
-
-
 // ----------------------------------------------------------------------------------------
 // Workflow
 // ----------------------------------------------------------------------------------------
@@ -294,28 +179,29 @@ workflow mosaicking {
         survey_component
 
     main:
-        generate_linmos_config(pixel_stokes_config, survey_component)
-        fix_string_header(generate_linmos_config.out.mosaic_files_in.flatten())
+        // One linmos job for each Stokes parameter of the pixel
+        jobs = pixel_stokes_config.map { stokes_config -> possum_job(stokes_config.getValue(), survey_component) }
+        linmos_config(jobs)
+
+        // Fix the headers of every input cube once (the weights are shared by the Stokes parameters)
+        fix_string_header(jobs.flatMap { job -> job.images + job.weights }.unique())
 
         // Expect [ra, dec, freq, pol] order in MFS
         if (survey_component == 'mfs') {
             flip_to_pol_freq(fix_string_header.out.image_cube_cor)
-            run_linmos(
-                generate_linmos_config.out.linmos_conf_out,
-                generate_linmos_config.out.mosaic_files_out,
-                flip_to_pol_freq.out.done.collect()
-            )
-            mosaic_files = run_linmos.out.mosaic_files
+
+            // Run linmos once all of the input cubes are ready
+            inputs_ready = flip_to_pol_freq.out.done.collect().map { true }
+            linmos(linmos_config.out.job.combine(inputs_ready).map { job, ready -> job })
+            mosaic_files = linmos.out.mosaic
         }
 
         // Flip axes to [ra, dec, pol, freq] for linmos MPI
         else {
-            run_linmos_mpi(
-                generate_linmos_config.out.linmos_conf_out,
-                generate_linmos_config.out.mosaic_files_out,
-                fix_string_header.out.done.collect()
-            )
-            flip_to_freq_pol(run_linmos_mpi.out.mosaic_files.flatten().unique())
+            // Run linmos once all of the input cubes are ready
+            inputs_ready = fix_string_header.out.done.collect().map { true }
+            linmos_mpi(linmos_config.out.job.combine(inputs_ready).map { job, ready -> job })
+            flip_to_freq_pol(linmos_mpi.out.mosaic.flatten().unique())
             mosaic_files = flip_to_freq_pol.out.image_cor.collect()
         }
 

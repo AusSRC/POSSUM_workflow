@@ -27,7 +27,7 @@ process get_component_files {
 }
 
 process add_history_to_fits_header {
-    container = params.METADATA_IMAGE
+    container = params.AUSSRC_PIPELINE_COMPONENTS_IMAGE
     containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
     debug true
 
@@ -45,7 +45,7 @@ process add_history_to_fits_header {
         """
         #!/bin/bash
 
-        python3 /app/fits_history.py \
+        python3 -m aussrc_pipeline_components.metadata.fits_history \
             -f $files -v \
             "AusSRC POSSUM pipeline START" \
             "$obs_id" \
@@ -59,7 +59,7 @@ process add_history_to_fits_header {
 }
 
 process header_float_values {
-    container = params.METADATA_IMAGE
+    container = params.AUSSRC_PIPELINE_COMPONENTS_IMAGE
     containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
     debug true
 
@@ -77,7 +77,7 @@ process header_float_values {
         """
         #!/bin/bash
 
-        python3 /app/fits_history.py \
+        python3 -m aussrc_pipeline_components.metadata.fits_history \
             -f $files -v \
             "AusSRC POSSUM pipeline START" \
             "$obs_id" \
