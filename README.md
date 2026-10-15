@@ -12,6 +12,20 @@ Then, complete HPX tiles are mosaicked together and uploaded to [CADC](https://w
 * Pre-processing of spectral cube images (`main.nf`)
 * Mosaicking to complete tile images (`mosaic.nf`)
 
+## Setup
+
+Shared nextflow modules, config and container images come from the [pipeline_components](https://github.com/AusSRC/pipeline_components) repository, which is included as a git submodule. Clone with
+
+```
+git clone --recurse-submodules git@github.com:AusSRC/POSSUM_workflow.git
+```
+
+or, in an existing clone
+
+```
+git submodule update --init
+```
+
 ## Running Pipelines
 
 To run the pipeline you need to specify a main script, a parameter file (or provide a list of parameters as arguments) and a deployment. Currently we only support `setonix` as the deployments.

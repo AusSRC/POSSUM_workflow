@@ -50,7 +50,7 @@ process get_obs_id {
 }
 
 process get_footprint_file {
-    container = params.METADATA_IMAGE
+    container = params.AUSSRC_PIPELINE_COMPONENTS_IMAGE
     containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT}"
 
     input:
@@ -61,7 +61,7 @@ process get_footprint_file {
 
     script:
         """
-        python3 /app/get_file_in_compressed_folder.py \
+        python3 -m aussrc_pipeline_components.metadata.get_file_in_compressed_folder \
             -p $evaluation_files \
             -f calibration-metadata-processing-logs \
             -k metadata/footprintOutput \

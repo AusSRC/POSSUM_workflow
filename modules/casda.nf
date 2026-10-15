@@ -2,76 +2,27 @@
 
 nextflow.enable.dsl = 2
 
-process download_cubes {
-    container = params.CASDA_DOWNLOAD_IMAGE
-    containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT} --bind /home:/home"
+include { download; download_evaluation_files } from '../pipeline_components/nextflow/modules/casda'
 
-    errorStrategy { sleep(Math.pow(3, task.attempt) * 200 as long); return 'retry' }
-    maxErrors 3
-
-    input:
-        val sbid
-        val project
-        val manifest
-
-    output:
-        val "$manifest", emit: manifest
-        val true, emit: done
-
-    script:
-	script_dir = "/software/projects/ja3/ashen/pipeline_components/casda_download"
-
-        """
-        #!/bin/bash
-
-        if [ ! -f "$manifest" ]; then
-            python3 -u $script_dir/casda_download.py \
-                -s $sbid \
-                -o ${params.WORKDIR}/sbid_processing/$sbid \
-                -c ${params.CASDA_CREDENTIALS} \
-                -m $manifest \
-                -p $project
-        fi
-        """
+// CASDA TAP queries for the POSSUM (spectral cubes) and EMU (MFS images) data products
+def possum_query(sbid) {
+    return "SELECT * FROM ivoa.obscore WHERE obs_id IN ('${sbid}') AND " +
+           "dataproduct_type='cube' AND (" +
+           "filename LIKE 'image.restored.i.%.contcube.conv.fits' OR " +
+           "filename LIKE 'weights.q.%.contcube.fits' OR " +
+           "filename LIKE 'image.restored.q.%.contcube.conv.fits' OR " +
+           "filename LIKE 'image.restored.u.%.contcube.conv.fits')"
 }
 
-process download_evaluation_files {
-    container = params.CASDA_DOWNLOAD_IMAGE
-    containerOptions = "--bind ${params.SCRATCH_ROOT}:${params.SCRATCH_ROOT} --bind /home:/home"
-
-    errorStrategy { sleep(Math.pow(2, task.attempt) * 200 as long); return 'retry' }
-    maxErrors 3
-
-    input:
-        val sbid
-
-    output:
-        val "${params.WORKDIR}/sbid_processing/$sbid/${params.EVALUATION_FILES_DIR}", emit: evaluation_files
-
-    script:
-	script_dir = "/software/projects/ja3/ashen/pipeline_components/casda_download"
-
-        """
-        #!/bin/bash
-
-        python3 $script_dir/evaluation_files.py -s $sbid \
-            -p AS203 \
-            -o ${params.WORKDIR}/sbid_processing/$sbid/${params.EVALUATION_FILES_DIR} \
-            -c ${params.CASDA_CREDENTIALS}
-
-        python3 $script_dir/evaluation_files.py \
-            -s $sbid \
-            -p AS202 \
-            -o ${params.WORKDIR}/sbid_processing/$sbid/${params.EVALUATION_FILES_DIR} \
-            -c ${params.CASDA_CREDENTIALS}
-
-        python3 $script_dir/evaluation_files.py \
-            -s $sbid \
-            -p AS201 \
-            -o ${params.WORKDIR}/sbid_processing/$sbid/${params.EVALUATION_FILES_DIR} \
-            -c ${params.CASDA_CREDENTIALS}
-        """
+def emu_query(sbid) {
+    return "SELECT * FROM ivoa.obscore WHERE obs_id IN ('${sbid}') AND (" +
+           "filename LIKE 'image.i.%.cont.taylor.%.restored.conv.fits' OR " +
+           "filename LIKE 'weights.i.%.cont.taylor%.fits')"
 }
+
+// ----------------------------------------------------------------------------------------
+// Processes
+// ----------------------------------------------------------------------------------------
 
 import groovy.json.JsonSlurper
 process parse_possum_manifest {
@@ -154,4 +105,65 @@ process parse_emu_manifest {
         if (weights_file == null) {
             throw new Exception("weights file is not found")
         }
+}
+
+// ----------------------------------------------------------------------------------------
+// Workflows
+// ----------------------------------------------------------------------------------------
+
+// Evaluation files for an observation from the POSSUM and EMU project codes. Downloaded to
+//      <WORKDIR>/sbid_processing/<sbid>/<EVALUATION_FILES_DIR>
+workflow evaluation_files {
+    take:
+        sbid
+
+    main:
+        download_evaluation_files(
+            sbid,
+            ['AS203', 'AS202', 'AS201'],
+            "${params.WORKDIR}/sbid_processing/${sbid}/${params.EVALUATION_FILES_DIR}"
+        )
+
+    emit:
+        evaluation_files = download_evaluation_files.out.evaluation_files
+}
+
+// Stokes I, Q, U cubes and weights cube for an observation. Downloaded to
+//      <WORKDIR>/sbid_processing/<sbid>
+workflow download_possum {
+    take:
+        sbid
+
+    main:
+        download(
+            possum_query(sbid),
+            "${params.WORKDIR}/sbid_processing/${sbid}",
+            "${params.WORKDIR}/sbid_processing/${sbid}/${sbid}.json"
+        )
+        parse_possum_manifest(download.out.manifest)
+
+    emit:
+        i_file = parse_possum_manifest.out.i_file
+        q_file = parse_possum_manifest.out.q_file
+        u_file = parse_possum_manifest.out.u_file
+        weights_file = parse_possum_manifest.out.weights_file
+}
+
+// EMU MFS image and weights for an observation. Downloaded to
+//      <WORKDIR>/sbid_processing/<sbid>
+workflow download_emu {
+    take:
+        sbid
+
+    main:
+        download(
+            emu_query(sbid),
+            "${params.WORKDIR}/sbid_processing/${sbid}",
+            "${params.WORKDIR}/sbid_processing/${sbid}/mfs/${sbid}.json"
+        )
+        parse_emu_manifest(download.out.manifest)
+
+    emit:
+        i_file = parse_emu_manifest.out.i_file
+        weights_file = parse_emu_manifest.out.weights_file
 }
